@@ -28,7 +28,7 @@ export const Header = ({
   };
 
   return (
-    <header className="bg-dark-surface border-b border-dark-border px-4 sm:px-6 py-3 sm:py-4">
+    <header className="bg-dark-surface/80 backdrop-blur-xl border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* Logo and Title */}
         <div className="min-w-0">
@@ -75,7 +75,7 @@ export const Header = ({
               <button
                 onClick={onManualSync}
                 disabled={syncStatus === 'syncing'}
-                className="p-2 hover:bg-dark-hover active:bg-dark-border rounded transition-colors disabled:opacity-50 touch-manipulation"
+                className="p-2 bg-white/5 backdrop-blur-xl border border-white/10 hover:bg-white/10 active:scale-95 rounded-xl transition-all duration-300 disabled:opacity-50 touch-manipulation"
                 title="Sync now - upload changes and check for updates"
               >
                 <svg 
@@ -108,7 +108,7 @@ export const Header = ({
           {isAuthenticated ? (
             <button
               onClick={onDisconnect}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-dark-bg hover:bg-dark-hover active:bg-dark-border border border-dark-border rounded-lg transition-colors text-xs sm:text-sm touch-manipulation"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 bg-white/5 backdrop-blur-xl hover:bg-white/10 active:scale-95 border border-white/10 rounded-xl transition-all duration-300 text-xs sm:text-sm touch-manipulation"
             >
               <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 18.16 24 16.68 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14c0 3.31 2.69 6 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h1.73z"/>
@@ -118,7 +118,10 @@ export const Header = ({
           ) : (
             <button
               onClick={onConnect}
-              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium touch-manipulation whitespace-nowrap"
+              className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:scale-95 text-white rounded-xl transition-all duration-300 text-xs sm:text-sm font-medium touch-manipulation whitespace-nowrap shadow-lg shadow-blue-500/30"
+              style={{
+                boxShadow: '0 0 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+              }}
             >
               <svg className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3s-1.34 3-3 3H6c-3.31 0-6-2.69-6-6s2.69-6 6-6h.71C7.37 7.69 8.48 6.8 9.8 6.27l1.46 1.46C9.5 8.23 8 9.96 8 12H6c-2.21 0-4 1.79-4 4s1.79 4 4 4h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/>

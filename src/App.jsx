@@ -71,15 +71,31 @@ function App() {
               This Week
             </h2>
             
-            {/* View Toggle */}
-            <div className="flex items-center gap-1 bg-dark-surface border border-dark-border rounded-lg p-1">
+            {/* View Toggle - iOS 26 Liquid Glass Effect */}
+            <div className="relative flex items-center gap-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-1 shadow-lg">
+              {/* Liquid Glass Slider Background */}
+              <div 
+                className={`
+                  absolute top-1 bottom-1 w-[calc(50%-0.25rem)] 
+                  bg-gradient-to-br from-blue-500/90 to-blue-600/90
+                  backdrop-blur-2xl rounded-xl
+                  transition-all duration-500 ease-out
+                  shadow-[0_0_20px_rgba(59,130,246,0.5)]
+                  ${viewMode === 'week' ? 'left-1' : 'left-[calc(50%+0.125rem)]'}
+                `}
+                style={{
+                  boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                }}
+              />
+              
               <button
                 onClick={() => setViewMode('week')}
                 className={`
-                  px-3 sm:px-4 py-2 sm:py-1 text-xs sm:text-sm rounded transition-colors touch-manipulation
+                  relative z-10 px-3 sm:px-4 py-2 sm:py-1 text-xs sm:text-sm rounded-xl 
+                  transition-all duration-300 touch-manipulation font-medium
                   ${viewMode === 'week' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-400 hover:text-gray-200 active:bg-dark-hover'
+                    ? 'text-white scale-[1.02]' 
+                    : 'text-gray-400 hover:text-gray-200 active:scale-95'
                   }
                 `}
               >
@@ -88,10 +104,11 @@ function App() {
               <button
                 onClick={() => setViewMode('calendar')}
                 className={`
-                  px-3 sm:px-4 py-2 sm:py-1 text-xs sm:text-sm rounded transition-colors touch-manipulation
+                  relative z-10 px-3 sm:px-4 py-2 sm:py-1 text-xs sm:text-sm rounded-xl 
+                  transition-all duration-300 touch-manipulation font-medium
                   ${viewMode === 'calendar' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'text-gray-400 hover:text-gray-200 active:bg-dark-hover'
+                    ? 'text-white scale-[1.02]' 
+                    : 'text-gray-400 hover:text-gray-200 active:scale-95'
                   }
                 `}
               >
