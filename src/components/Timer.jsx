@@ -89,10 +89,10 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
   if (compact && !isFocusMode) {
     return (
       <div className="bg-dark-surface border-b border-dark-border px-3 sm:px-6 py-3">
-        <div className="flex items-center justify-between gap-4">
-          {/* Timer Display */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
+        <div className="flex items-start justify-between gap-4">
+          {/* Timer Display + Mini Checklist */}
+          <div className="flex-1 flex items-start gap-3">
+            <div className="relative mt-1">
               {/* Circular Progress */}
               <svg className="w-12 h-12 sm:w-14 sm:h-14 transform -rotate-90">
                 <circle
@@ -121,20 +121,78 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
               </div>
             </div>
 
-            <div className="min-w-0">
-              <div className="text-lg sm:text-xl font-mono font-bold text-gray-200">
-                {formatTime(timeLeft)}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-lg sm:text-xl font-mono font-bold text-gray-200">
+                    {formatTime(timeLeft)}
+                  </div>
+                  {totalTasks > 0 && (
+                    <div className="text-xs text-gray-400">
+                      {completedCount}/{totalTasks} tasks
+                    </div>
+                  )}
+                </div>
+
+                {totalTasks > 0 && (
+                  <button
+                    onClick={() => setIsFocusMode(true)}
+                    className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] text-gray-300 transition-colors"
+                    title="Open fullscreen focus mode"
+                  >
+                    ⛶
+                    <span>Focus</span>
+                  </button>
+                )}
               </div>
+
+              {/* Mini task checklist (top bar) */}
               {totalTasks > 0 && (
-                <div className="text-xs text-gray-400">
-                  {totalTasks === 1 ? (
-                    <span className="truncate max-w-[200px] sm:max-w-xs block">
-                      {selectedTasks[0].text}
-                    </span>
-                  ) : (
-                    <span>
-                      {completedCount}/{totalTasks} tasks • Click for focus mode
-                    </span>
+                <div className="mt-2 max-h-20 overflow-y-auto pr-1 space-y-1">
+                  {selectedTasks.slice(0, 3).map(task => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-2 text-[11px] text-gray-300"
+                    >
+                      <button
+                        onClick={() => onTaskComplete && onTaskComplete(task.day, task.id)}
+                        className={`
+                          flex-shrink-0 w-4 h-4 rounded border-2 transition-all
+                          ${task.completed
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-gray-500 hover:border-green-400 active:border-green-500'}
+                        `}
+                      >
+                        {task.completed && (
+                          <svg
+                            className="w-full h-full text-white"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                      <div className="flex-1 truncate">
+                        <span className={task.completed ? 'line-through text-gray-500' : ''}>
+                          {task.text}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  {totalTasks > 3 && (
+                    <button
+                      onClick={() => setIsFocusMode(true)}
+                      className="mt-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors"
+                    >
+                      + View all {totalTasks} tasks
+                    </button>
                   )}
                 </div>
               )}
@@ -142,7 +200,7 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-1">
             {!isRunning ? (
               <button
                 onClick={handleStart}
@@ -164,26 +222,48 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
                 </svg>
               </button>
             )}
-            
+
             <button
               onClick={handleReset}
               className="p-2 bg-dark-bg hover:bg-dark-hover active:bg-dark-border rounded-lg transition-colors touch-manipulation"
               title="Reset timer"
             >
-              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg
+                className="w-5 h-5 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
             </button>
 
-            <button
-              onClick={() => setIsFocusMode(true)}
-              className="p-2 bg-dark-bg hover:bg-dark-hover active:bg-dark-border rounded-lg transition-colors touch-manipulation"
-              title="Focus mode"
-            >
-              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
-            </button>
+            {totalTasks > 0 && (
+              <button
+                onClick={() => setIsFocusMode(true)}
+                className="p-2 bg-dark-bg hover:bg-dark-hover active:bg-dark-border rounded-lg transition-colors touch-manipulation sm:hidden"
+                title="Focus mode"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
