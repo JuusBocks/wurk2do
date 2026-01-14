@@ -128,7 +128,7 @@ export const useGoogleDriveSync = () => {
       
       let content = response.result;
       
-      // If content is encrypted (older versions), try to decrypt; otherwise parse as plain JSON
+      // If content is encrypted (older versions), try to decrypt; otherwise parse as (possibly compressed) JSON
       if (typeof content === 'string') {
         try {
           if (userEmailRef.current && isEncrypted(content)) {
@@ -149,8 +149,18 @@ export const useGoogleDriveSync = () => {
               content = JSON.parse(decryptedContent);
             }
           } else {
-            // New behavior: plain JSON string, no encryption
-            content = JSON.parse(content);
+            // New behavior: plain JSON string, possibly compressed but not encrypted.
+            let jsonString = content;
+            if (isCompressionSupported()) {
+              try {
+                const decompressed = await decompressData(content);
+                jsonString = decompressed;
+                console.log('📦 Decompressed plain JSON data from Drive');
+              } catch (err) {
+                console.warn('⚠️ Decompression failed for plain JSON path, using raw content:', err);
+              }
+            }
+            content = JSON.parse(jsonString);
           }
         } catch (err) {
           console.warn('⚠️ Failed to parse Drive content, treating as empty:', err);
