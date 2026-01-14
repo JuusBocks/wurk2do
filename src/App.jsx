@@ -1,9 +1,13 @@
 import { useEffect } from 'react';
 import { Header } from './components/Header';
 import { WeekView } from './components/WeekView';
+import { TaskSummary } from './components/TaskSummary';
 import { useGoogleDriveSync } from './hooks/useGoogleDriveSync';
+import { useTaskStore } from './store/useTaskStore';
 
 function App() {
+  const tasks = useTaskStore(state => state.tasks);
+  
   const {
     isInitialized,
     isAuthenticated,
@@ -60,6 +64,9 @@ function App() {
         </div>
 
         <WeekView onDataChange={trackLocalChange} />
+
+        {/* Task Summary */}
+        <TaskSummary tasks={tasks} />
       </main>
 
       {/* Footer */}
