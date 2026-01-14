@@ -89,7 +89,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-bg">
+    <div className="min-h-screen bg-dark-bg flex flex-col">
       <Header
         isAuthenticated={isAuthenticated}
         syncStatus={syncStatus}
@@ -108,55 +108,57 @@ function App() {
         onClearTasks={handleClearTimerTasks}
       />
 
-      <main className="py-4 sm:py-6" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
-        <div className="mb-3 sm:mb-4 px-3 sm:px-6">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-200">
-              {viewMode === 'week' && 'Week View'}
-              {viewMode === 'calendar' && 'Calendar View'}
-              {viewMode === 'summary' && 'Week Summary'}
-            </h2>
+      <main className="flex-1 py-4 sm:py-6 overflow-y-auto">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 pb-28">
+          <div className="mb-3 sm:mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-200">
+                {viewMode === 'week' && 'Week View'}
+                {viewMode === 'calendar' && 'Calendar View'}
+                {viewMode === 'summary' && 'Week Summary'}
+              </h2>
+            </div>
+            
+            <p className="text-xs sm:text-sm text-gray-400">
+              {isAuthenticated 
+                ? '✓ Auto-syncs every 8 hours • Click sync to update now'
+                : '⚠️ Connect Drive for cloud sync'
+              }
+            </p>
           </div>
-          
-          <p className="text-xs sm:text-sm text-gray-400">
-            {isAuthenticated 
-              ? '✓ Auto-syncs every 8 hours • Click sync to update now'
-              : '⚠️ Connect Drive for cloud sync'
-            }
-          </p>
+
+          {viewMode === 'week' && (
+            <WeekView 
+              onDataChange={trackLocalChange} 
+              onTaskSelectForTimer={handleAddTaskToTimer}
+              selectedTimerTasks={selectedTasksForTimer}
+            />
+          )}
+
+          {viewMode === 'calendar' && (
+            <CalendarView 
+              tasks={tasks}
+              onAddTask={(day, text) => {
+                addTask(day, text);
+                trackLocalChange();
+              }}
+              onUpdateTask={(day, taskId, updates) => {
+                updateTask(day, taskId, updates);
+                trackLocalChange();
+              }}
+              onDeleteTask={(day, taskId) => {
+                deleteTask(day, taskId);
+                trackLocalChange();
+              }}
+              onTaskSelectForTimer={handleAddTaskToTimer}
+              selectedTimerTasks={selectedTasksForTimer}
+            />
+          )}
+
+          {viewMode === 'summary' && (
+            <TaskSummary tasks={tasks} />
+          )}
         </div>
-
-        {viewMode === 'week' && (
-          <WeekView 
-            onDataChange={trackLocalChange} 
-            onTaskSelectForTimer={handleAddTaskToTimer}
-            selectedTimerTasks={selectedTasksForTimer}
-          />
-        )}
-
-        {viewMode === 'calendar' && (
-          <CalendarView 
-            tasks={tasks}
-            onAddTask={(day, text) => {
-              addTask(day, text);
-              trackLocalChange();
-            }}
-            onUpdateTask={(day, taskId, updates) => {
-              updateTask(day, taskId, updates);
-              trackLocalChange();
-            }}
-            onDeleteTask={(day, taskId) => {
-              deleteTask(day, taskId);
-              trackLocalChange();
-            }}
-            onTaskSelectForTimer={handleAddTaskToTimer}
-            selectedTimerTasks={selectedTasksForTimer}
-          />
-        )}
-
-        {viewMode === 'summary' && (
-          <TaskSummary tasks={tasks} />
-        )}
       </main>
 
       {/* iOS-style Bottom Navigation */}

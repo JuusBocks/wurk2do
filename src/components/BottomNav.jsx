@@ -7,15 +7,15 @@ export const BottomNav = ({ currentView, onViewChange }) => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 bg-dark-surface/80 backdrop-blur-2xl border-t border-white/10 z-50"
+      className="fixed bottom-0 left-0 right-0 bg-dark-surface/90 backdrop-blur-2xl border-t border-white/10 z-50"
       style={{ 
-        paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
-        paddingTop: '0.5rem',
-        minHeight: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
-        boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.3)',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+        paddingTop: '0.25rem',
+        minHeight: '3.75rem',
+        boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.45)',
       }}
     >
-      <div className="flex items-center justify-around px-4 pt-2">
+      <div className="flex items-center justify-around px-4">
         {navItems.map((item) => {
           const isActive = currentView === item.id;
           
