@@ -3,9 +3,8 @@ import { DAYS_OF_WEEK } from '../config/constants';
 import { format, startOfWeek, addDays, isToday as isTodayFn } from 'date-fns';
 
 const TIME_SLOTS = [
-  '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM',
-  '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM',
-  '6 PM', '7 PM', '8 PM', '9 PM', '10 PM', '11 PM'
+  '12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '6 AM', '7 AM', '8 AM', '9 AM', '10 AM', '11 AM',
+  '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM', '11 PM'
 ];
 
 // Height per hour in pixels
@@ -107,7 +106,7 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
     const dayTasks = tasks[day] || [];
     return dayTasks.map(task => {
       const { startHour, duration, taskName } = parseTask(task);
-      const top = (startHour - 6) * HOUR_HEIGHT; // 6 AM is our starting hour
+      const top = startHour * HOUR_HEIGHT; // 12 AM (0) is our starting hour
       const height = duration * HOUR_HEIGHT;
       
       return {
