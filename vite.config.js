@@ -16,6 +16,8 @@ export default defineConfig({
         manualChunks: undefined
       }
     }
-  }
+  },
+  // Ensure public files (manifest, icons, service-worker) are copied
+  publicDir: 'public'
 })
 

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate wurk2do Icons</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #0f0f0f;
+            color: #fff;
+        }
+        h1 { color: #60a5fa; }
+        .icon-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+        canvas {
+            border: 2px solid #2a2a2a;
+            border-radius: 8px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #2563eb; }
+        .instructions {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .instructions ol { margin: 10px 0; }
+        .instructions li { margin: 8px 0; }
+    </style>
+</head>
+<body>
+    <h1>📱 wurk2do Icon Generator</h1>
+    
+    <div class="instructions">
+        <h3>How to use:</h3>
+        <ol>
+            <li>Click each "Download" button below</li>
+            <li>Save the files to your <code>public/</code> folder</li>
+            <li>Deploy to Vercel</li>
+            <li>On iPhone: Open in Safari → Share → Add to Home Screen</li>
+        </ol>
+    </div>
+
+    <div class="icon-container">
+        <div>
+            <canvas id="icon-192" width="192" height="192"></canvas>
+            <br><button onclick="downloadIcon('icon-192', 'icon-192.png')">Download 192x192</button>
+        </div>
+        <div>
+            <canvas id="icon-512" width="512" height="512"></canvas>
+            <br><button onclick="downloadIcon('icon-512', 'icon-512.png')">Download 512x512</button>
+        </div>
+        <div>
+            <canvas id="apple-icon" width="180" height="180"></canvas>
+            <br><button onclick="downloadIcon('apple-icon', 'apple-touch-icon.png')">Download Apple Icon</button>
+        </div>
+    </div>
+
+    <script>
+        // Draw icon on canvas
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            
+            // Background
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add rounded corners
+            ctx.save();
+            ctx.beginPath();
+            const radius = size * 0.15;
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.clip();
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#1e40af');
+            gradient.addColorStop(1, '#3b82f6');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw calendar grid (7 days)
+            const padding = size * 0.15;
+            const gridWidth = size - padding * 2;
+            const colWidth = gridWidth / 7;
+            const rowHeight = size * 0.08;
+            
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = size * 0.005;
+            
+            // Draw week days
+            for (let i = 0; i < 7; i++) {
+                const x = padding + i * colWidth;
+                const y = padding;
+                
+                // Day column
+                ctx.fillStyle = i === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)';
+                ctx.fillRect(x + 2, y, colWidth - 4, rowHeight * 5);
+                ctx.strokeRect(x + 2, y, colWidth - 4, rowHeight * 5);
+            }
+            
+            // Title "w2d"
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${size * 0.18}px system-ui, -apple-system, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('w2d', size / 2, size * 0.75);
+            
+            // Subtitle
+            ctx.font = `${size * 0.06}px system-ui`;
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillText('Weekly Planner', size / 2, size * 0.88);
+            
+            ctx.restore();
+        }
+        
+        // Initialize icons
+        ['icon-192', 'icon-512', 'apple-icon'].forEach(id => {
+            const canvas = document.getElementById(id);
+            drawIcon(canvas);
+        });
+        
+        // Download function
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>

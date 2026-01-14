@@ -32,7 +32,7 @@ export const Header = ({
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* Logo and Title */}
         <div className="min-w-0">
-          <h1 className="text-lg sm:text-2xl font-bold text-gray-100 truncate">Week2Do</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-100 truncate">wurk2do</h1>
           <p className="hidden sm:block text-sm text-gray-400">Privacy-focused weekly planner</p>
         </div>
 

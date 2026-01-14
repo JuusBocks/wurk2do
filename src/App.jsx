@@ -65,7 +65,7 @@ function App() {
       {/* Footer */}
       <footer className="hidden sm:block fixed bottom-0 left-0 right-0 bg-dark-surface border-t border-dark-border px-6 py-2 text-xs text-gray-500 text-center">
         <p>
-          Week2Do - Privacy-focused weekly planner. Your data stays in your Google Drive.
+          wurk2do - Privacy-focused weekly planner. Your data stays in your Google Drive.
           {' '}
           <a 
             href="https://github.com" 
