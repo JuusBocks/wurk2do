@@ -5,7 +5,7 @@ import { DAYS_OF_WEEK } from '../config/constants';
 import { useTaskStore } from '../store/useTaskStore';
 import { startOfWeek, addDays, format, isToday as isTodayFn } from 'date-fns';
 
-export const WeekView = ({ onDataChange }) => {
+export const WeekView = ({ onDataChange, onTaskSelectForTimer }) => {
   const tasks = useTaskStore(state => state.tasks);
   const addTask = useTaskStore(state => state.addTask);
   const updateTask = useTaskStore(state => state.updateTask);

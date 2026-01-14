@@ -9,12 +9,17 @@ A self-hosted, privacy-focused weekly planner web application that uses Google D
 
 ## 🚀 Features
 
-- **📅 Weekly View**: Horizontal scrolling interface showing Monday to Sunday
+- **📅 Calendar & Week Views**: Toggle between calendar-style time slots and traditional weekly columns
 - **✅ Task Management**: Add, edit, delete, and mark tasks as completed
+- **⭐ Priority Levels**: High, Medium, Low priority with visual indicators and auto-sorting
+- **⏱️ Pomodoro Timer**: Built-in adjustable timer with focus mode for task-based time tracking
 - **🎯 Drag & Drop**: Move tasks between days effortlessly
-- **☁️ Google Drive Sync**: Automatic cloud synchronization with your Google Drive
+- **⏰ Estimated Hours**: Assign and track estimated time for each task
+- **📊 Task Summary**: Comprehensive list view of all tasks with priority and completion status
+- **☁️ Google Drive Sync**: Automatic cloud synchronization (every 8 hours) with your Google Drive
 - **💾 Local-First**: Instant loading from LocalStorage, works offline
-- **🌙 Dark Mode**: Beautiful, minimalist dark theme
+- **📱 PWA Support**: Install on iPhone home screen, works like a native app
+- **🌙 Dark Mode**: Beautiful, minimalist dark theme optimized for mobile
 - **🔒 Privacy-Focused**: Your data stays in YOUR Google Drive
 - **🐳 Self-Hostable**: Easy deployment with Docker
 

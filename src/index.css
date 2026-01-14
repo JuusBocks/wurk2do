@@ -25,8 +25,15 @@
 
 @layer utilities {
   .scrollbar-thin::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
+    height: 6px;
+    width: 6px;
+  }
+  
+  @media (min-width: 640px) {
+    .scrollbar-thin::-webkit-scrollbar {
+      height: 8px;
+      width: 8px;
+    }
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -39,6 +46,12 @@
   
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-gray-500;
+  }
+  
+  /* Smooth scrolling for calendar */
+  .scrollbar-thin {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

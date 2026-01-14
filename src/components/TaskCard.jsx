@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 
-export const TaskCard = ({ task, index, day, onUpdate, onDelete }) => {
+export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [editHours, setEditHours] = useState(task.estimatedHours || 0);
 
   const handleSave = () => {
     if (editText.trim()) {
@@ -22,13 +24,43 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete }) => {
     }
   };
 
+  const handleHoursSave = () => {
+    const hours = Math.max(0, Math.min(24, parseFloat(editHours) || 0));
+    onUpdate(day, task.id, { estimatedHours: hours });
+    setIsEditingHours(false);
+  };
+
+  const handleHoursKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleHoursSave();
+    } else if (e.key === 'Escape') {
+      setEditHours(task.estimatedHours || 0);
+      setIsEditingHours(false);
+    }
+  };
+
   const toggleComplete = () => {
     onUpdate(day, task.id, { completed: !task.completed });
   };
 
-  const togglePriority = () => {
-    onUpdate(day, task.id, { priority: !task.priority });
+  const cyclePriority = () => {
+    // Cycle through: 0 (none) → 1 (low) → 2 (medium) → 3 (high) → 0
+    const nextPriority = (task.priority || 0) >= 3 ? 0 : (task.priority || 0) + 1;
+    onUpdate(day, task.id, { priority: nextPriority });
   };
+
+  const getPriorityConfig = () => {
+    const priority = task.priority || 0;
+    switch(priority) {
+      case 3: return { color: 'red', label: 'High', bgClass: 'bg-red-500/5', borderClass: 'border-red-500', textClass: 'text-red-400', fillClass: 'fill-red-500' };
+      case 2: return { color: 'orange', label: 'Medium', bgClass: 'bg-orange-500/5', borderClass: 'border-orange-500', textClass: 'text-orange-400', fillClass: 'fill-orange-500' };
+      case 1: return { color: 'yellow', label: 'Low', bgClass: 'bg-yellow-500/5', borderClass: 'border-yellow-500', textClass: 'text-yellow-400', fillClass: 'fill-yellow-500' };
+      default: return { color: 'gray', label: 'None', bgClass: '', borderClass: 'border-dark-border', textClass: 'text-gray-600', fillClass: '' };
+    }
+  };
+
+  const priorityConfig = getPriorityConfig();
 
   return (
     <Draggable draggableId={task.id} index={index}>
@@ -42,22 +74,22 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete }) => {
             hover:border-gray-600 active:border-blue-500 transition-all duration-200
             ${snapshot.isDragging ? 'shadow-lg shadow-blue-500/20 border-blue-500' : ''}
             ${task.completed ? 'opacity-60' : ''}
-            ${task.priority ? 'border-2 border-orange-500 bg-orange-500/5' : 'border border-dark-border'}
+            ${(task.priority || 0) > 0 ? `border-2 ${priorityConfig.borderClass} ${priorityConfig.bgClass}` : 'border border-dark-border'}
             touch-manipulation
           `}
         >
           <div className="flex items-start gap-2">
-            {/* Priority Star */}
+            {/* Priority Star - Click to cycle through levels */}
             <button
-              onClick={togglePriority}
+              onClick={cyclePriority}
               className="mt-0.5 flex-shrink-0 w-6 h-6 sm:w-5 sm:h-5 transition-all touch-manipulation"
-              title={task.priority ? "Remove priority" : "Mark as priority"}
+              title={`Priority: ${priorityConfig.label} (click to change)`}
             >
               <svg 
                 className={`w-full h-full transition-colors ${
-                  task.priority 
-                    ? 'text-orange-500 fill-orange-500' 
-                    : 'text-gray-600 hover:text-orange-400'
+                  (task.priority || 0) > 0
+                    ? `${priorityConfig.textClass} ${priorityConfig.fillClass}` 
+                    : 'text-gray-600 hover:text-yellow-400'
                 }`}
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -104,19 +136,59 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete }) => {
                     className={`
                       text-sm cursor-pointer break-words
                       ${task.completed ? 'line-through text-gray-500' : 'text-gray-200'}
-                      ${task.priority && !task.completed ? 'font-medium' : ''}
+                      ${(task.priority || 0) > 0 && !task.completed ? 'font-medium' : ''}
                     `}
                   >
                     {task.text}
                   </p>
-                  {task.priority && !task.completed && (
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full">
-                      Priority
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {(task.priority || 0) > 0 && !task.completed && (
+                      <span className={`inline-block px-2 py-0.5 ${priorityConfig.bgClass.replace('/5', '/20')} ${priorityConfig.textClass} text-xs rounded-full`}>
+                        P{task.priority} {priorityConfig.label}
+                      </span>
+                    )}
+                    
+                    {/* Estimated Hours */}
+                    {isEditingHours ? (
+                      <input
+                        type="number"
+                        min="0"
+                        max="24"
+                        step="0.5"
+                        value={editHours}
+                        onChange={(e) => setEditHours(e.target.value)}
+                        onBlur={handleHoursSave}
+                        onKeyDown={handleHoursKeyDown}
+                        className="w-20 sm:w-16 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 touch-manipulation"
+                        autoFocus
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setIsEditingHours(true)}
+                        className="inline-flex items-center gap-1 px-2 py-1 sm:py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors touch-manipulation"
+                        title="Click to set estimated hours"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {(task.estimatedHours || 0) > 0 ? `${task.estimatedHours}h` : 'Hours'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* Timer Button */}
+            <button
+              onClick={() => onStartTimer && onStartTimer(task)}
+              className="flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-blue-400 active:text-blue-500 p-1 -m-1 touch-manipulation"
+              title="Start timer for this task"
+            >
+              <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
 
             {/* Delete Button */}
             <button

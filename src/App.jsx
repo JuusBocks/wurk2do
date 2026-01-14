@@ -1,12 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { WeekView } from './components/WeekView';
 import { TaskSummary } from './components/TaskSummary';
+import { CalendarView } from './components/CalendarView';
+import { Timer } from './components/Timer';
 import { useGoogleDriveSync } from './hooks/useGoogleDriveSync';
 import { useTaskStore } from './store/useTaskStore';
 
 function App() {
+  const [viewMode, setViewMode] = useState('calendar'); // 'week' or 'calendar' - default to calendar
+  const [selectedTaskForTimer, setSelectedTaskForTimer] = useState(null);
   const tasks = useTaskStore(state => state.tasks);
+  const addTask = useTaskStore(state => state.addTask);
+  const updateTask = useTaskStore(state => state.updateTask);
+  const deleteTask = useTaskStore(state => state.deleteTask);
   
   const {
     isInitialized,
@@ -50,11 +57,49 @@ function App() {
         onManualSync={manualSync}
       />
 
+      {/* Timer Bar */}
+      <Timer 
+        compact={true} 
+        selectedTask={selectedTaskForTimer}
+        onTaskSelect={setSelectedTaskForTimer}
+      />
+
       <main className="py-4 sm:py-6">
         <div className="mb-3 sm:mb-4 px-3 sm:px-6">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-200 mb-1 sm:mb-2">
-            This Week
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-200">
+              This Week
+            </h2>
+            
+            {/* View Toggle */}
+            <div className="flex items-center gap-1 bg-dark-surface border border-dark-border rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('week')}
+                className={`
+                  px-3 sm:px-4 py-2 sm:py-1 text-xs sm:text-sm rounded transition-colors touch-manipulation
+                  ${viewMode === 'week' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-400 hover:text-gray-200 active:bg-dark-hover'
+                  }
+                `}
+              >
+                📋 <span className="hidden xs:inline">Week</span>
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`
+                  px-3 sm:px-4 py-2 sm:py-1 text-xs sm:text-sm rounded transition-colors touch-manipulation
+                  ${viewMode === 'calendar' 
+                    ? 'bg-blue-500 text-white' 
+                    : 'text-gray-400 hover:text-gray-200 active:bg-dark-hover'
+                  }
+                `}
+              >
+                📅 <span className="hidden xs:inline">Cal</span>
+              </button>
+            </div>
+          </div>
+          
           <p className="text-xs sm:text-sm text-gray-400">
             {isAuthenticated 
               ? '✓ Auto-syncs every 8 hours • Click sync to update now'
@@ -63,10 +108,35 @@ function App() {
           </p>
         </div>
 
-        <WeekView onDataChange={trackLocalChange} />
-
-        {/* Task Summary */}
-        <TaskSummary tasks={tasks} />
+        {viewMode === 'week' ? (
+          <>
+            <WeekView 
+              onDataChange={trackLocalChange} 
+              onTaskSelectForTimer={setSelectedTaskForTimer}
+            />
+            <TaskSummary tasks={tasks} />
+          </>
+        ) : (
+          <>
+            <CalendarView 
+              tasks={tasks}
+              onAddTask={(day, text) => {
+                addTask(day, text);
+                trackLocalChange();
+              }}
+              onUpdateTask={(day, taskId, updates) => {
+                updateTask(day, taskId, updates);
+                trackLocalChange();
+              }}
+              onDeleteTask={(day, taskId) => {
+                deleteTask(day, taskId);
+                trackLocalChange();
+              }}
+              onTaskSelectForTimer={setSelectedTaskForTimer}
+            />
+            <TaskSummary tasks={tasks} />
+          </>
+        )}
       </main>
 
       {/* Footer */}
