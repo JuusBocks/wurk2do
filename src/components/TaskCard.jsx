@@ -6,6 +6,8 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer })
   const [editText, setEditText] = useState(task.text);
   const [isEditingHours, setIsEditingHours] = useState(false);
   const [editHours, setEditHours] = useState(task.estimatedHours || 0);
+  const [isEditingTime, setIsEditingTime] = useState(false);
+  const [selectedTime, setSelectedTime] = useState('');
 
   const handleSave = () => {
     if (editText.trim()) {
@@ -38,6 +40,45 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer })
       setEditHours(task.estimatedHours || 0);
       setIsEditingHours(false);
     }
+  };
+
+  // Extract time from task text if it exists (e.g., "9 AM - Task name")
+  const getTaskTime = () => {
+    const timeMatch = task.text.match(/^(\d+\s*(?:AM|PM))/i);
+    return timeMatch ? timeMatch[1].trim() : null;
+  };
+
+  // Get task text without time prefix
+  const getTaskTextWithoutTime = () => {
+    return task.text.replace(/^\d+\s*(?:AM|PM)\s*-\s*/i, '');
+  };
+
+  const handleTimeSelect = (time) => {
+    const taskTextWithoutTime = getTaskTextWithoutTime();
+    const newText = time ? `${time} - ${taskTextWithoutTime}` : taskTextWithoutTime;
+    onUpdate(day, task.id, { text: newText });
+    setIsEditingTime(false);
+  };
+
+  // Generate time slots (12 AM - 11 PM)
+  const generateTimeSlots = () => {
+    const slots = [];
+    for (let hour = 0; hour < 24; hour++) {
+      let displayHour = hour;
+      let period = 'AM';
+      
+      if (hour === 0) {
+        displayHour = 12;
+      } else if (hour === 12) {
+        period = 'PM';
+      } else if (hour > 12) {
+        displayHour = hour - 12;
+        period = 'PM';
+      }
+      
+      slots.push(`${displayHour} ${period}`);
+    }
+    return slots;
   };
 
   const toggleComplete = () => {
@@ -148,6 +189,41 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer })
                       </span>
                     )}
                     
+                    {/* Time Slot Picker */}
+                    {isEditingTime ? (
+                      <div className="relative">
+                        <select
+                          value={selectedTime}
+                          onChange={(e) => {
+                            setSelectedTime(e.target.value);
+                            handleTimeSelect(e.target.value);
+                          }}
+                          onBlur={() => setIsEditingTime(false)}
+                          className="w-24 bg-dark-bg border border-gray-600 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 touch-manipulation appearance-none"
+                          autoFocus
+                        >
+                          <option value="">No time</option>
+                          {generateTimeSlots().map(slot => (
+                            <option key={slot} value={slot}>{slot}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedTime(getTaskTime() || '');
+                          setIsEditingTime(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 sm:py-0.5 bg-purple-500/10 text-purple-400 text-xs rounded-full hover:bg-purple-500/20 active:bg-purple-500/30 transition-colors touch-manipulation"
+                        title="Click to set start time"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        {getTaskTime() || 'Time'}
+                      </button>
+                    )}
+                    
                     {/* Estimated Hours */}
                     {isEditingHours ? (
                       <input
@@ -166,12 +242,12 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer })
                       <button
                         onClick={() => setIsEditingHours(true)}
                         className="inline-flex items-center gap-1 px-2 py-1 sm:py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors touch-manipulation"
-                        title="Click to set estimated hours"
+                        title="Click to set duration (hours)"
                       >
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        {(task.estimatedHours || 0) > 0 ? `${task.estimatedHours}h` : 'Hours'}
+                        {(task.estimatedHours || 0) > 0 ? `${task.estimatedHours}h` : 'Duration'}
                       </button>
                     )}
                   </div>
