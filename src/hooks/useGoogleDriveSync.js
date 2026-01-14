@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CONFIG, SYNC_DELAY, AUTO_SYNC_INTERVAL } from '../config/constants';
 import { useTaskStore } from '../store/useTaskStore';
 import { encryptData, decryptData, isEncrypted, migrateToEncrypted } from '../utils/encryption';
+import { compressData, decompressData, isCompressionSupported } from '../utils/compression';
+import { hashData, quickChecksum } from '../utils/dataHash';
 
 export const useGoogleDriveSync = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -18,6 +20,9 @@ export const useGoogleDriveSync = () => {
   const autoSyncIntervalRef = useRef(null);
   const lastLocalChangeRef = useRef(Date.now());
   const userEmailRef = useRef(null);
+  const lastUploadHashRef = useRef(null);
+  const lastDownloadHashRef = useRef(null);
+  const fileMetadataRef = useRef(null);
   
   const loadData = useTaskStore(state => state.loadData);
   const getAllData = useTaskStore(state => state.getAllData);
@@ -66,6 +71,12 @@ export const useGoogleDriveSync = () => {
   // Find or create the data file in Google Drive
   const getOrCreateFile = useCallback(async () => {
     try {
+      // Check cache first to reduce API calls
+      if (fileIdRef.current && fileMetadataRef.current) {
+        console.log('📋 Using cached file metadata (saves API call)');
+        return fileMetadataRef.current;
+      }
+
       // Search for existing file
       const searchResponse = await window.gapi.client.drive.files.list({
         q: `name='${GOOGLE_CONFIG.FILE_NAME}' and trashed=false`,
@@ -76,8 +87,10 @@ export const useGoogleDriveSync = () => {
       const files = searchResponse.result.files;
       
       if (files && files.length > 0) {
-        // File exists
+        // File exists - cache it
         fileIdRef.current = files[0].id;
+        fileMetadataRef.current = files[0];
+        console.log('📋 File found and cached');
         return files[0];
       } else {
         // Create new file
@@ -90,11 +103,13 @@ export const useGoogleDriveSync = () => {
         });
         
         fileIdRef.current = createResponse.result.id;
+        fileMetadataRef.current = createResponse.result;
         
         // Write initial empty data
         const initialData = getAllData();
         await uploadFile(createResponse.result.id, initialData);
         
+        console.log('📋 File created and cached');
         return createResponse.result;
       }
     } catch (err) {
@@ -117,8 +132,25 @@ export const useGoogleDriveSync = () => {
       if (userEmailRef.current && typeof content === 'string' && isEncrypted(content)) {
         console.log('🔓 Decrypting data from Drive...');
         const decryptedContent = await decryptData(content, userEmailRef.current);
-        content = JSON.parse(decryptedContent);
+        
+        // Try to decompress if compression is supported
+        if (isCompressionSupported()) {
+          try {
+            const decompressedContent = await decompressData(decryptedContent);
+            content = JSON.parse(decompressedContent);
+            console.log('📦 Decompressed data');
+          } catch {
+            // Data might not be compressed (backward compatibility)
+            content = JSON.parse(decryptedContent);
+          }
+        } else {
+          content = JSON.parse(decryptedContent);
+        }
       }
+      
+      // Cache the hash of downloaded data to prevent unnecessary uploads
+      const downloadHash = await hashData(JSON.stringify(content));
+      lastDownloadHashRef.current = downloadHash;
       
       return content;
     } catch (err) {
@@ -130,6 +162,15 @@ export const useGoogleDriveSync = () => {
   // Upload file content to Google Drive
   const uploadFile = useCallback(async (fileId, data) => {
     try {
+      // Check if data actually changed using hash comparison
+      const dataString = JSON.stringify(data);
+      const currentHash = await hashData(dataString);
+      
+      if (currentHash === lastUploadHashRef.current) {
+        console.log('⏭️ Data unchanged, skipping upload (saves API call)');
+        return { skipped: true };
+      }
+
       const boundary = '-------314159265358979323846';
       const delimiter = "\r\n--" + boundary + "\r\n";
       const close_delim = "\r\n--" + boundary + "--";
@@ -139,8 +180,18 @@ export const useGoogleDriveSync = () => {
         modifiedTime: new Date().toISOString(),
       };
 
+      let contentToUpload = dataString;
+      
+      // Compress data before encryption if supported
+      if (isCompressionSupported()) {
+        const originalSize = new Blob([contentToUpload]).size;
+        contentToUpload = await compressData(contentToUpload);
+        const compressedSize = new Blob([contentToUpload]).size;
+        const savings = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+        console.log(`📦 Compressed data: ${originalSize}B → ${compressedSize}B (${savings}% smaller)`);
+      }
+      
       // Encrypt data before uploading if user email is available
-      let contentToUpload = JSON.stringify(data);
       if (userEmailRef.current) {
         console.log('🔒 Encrypting data before upload...');
         contentToUpload = await encryptData(contentToUpload, userEmailRef.current);
@@ -171,7 +222,12 @@ export const useGoogleDriveSync = () => {
         throw new Error(`Upload failed: ${response.statusText}`);
       }
 
-      return await response.json();
+      // Update last upload hash to prevent duplicate uploads
+      lastUploadHashRef.current = currentHash;
+      
+      const result = await response.json();
+      console.log('✅ Upload complete');
+      return result;
     } catch (err) {
       console.error('Error uploading file:', err);
       throw err;
@@ -189,7 +245,7 @@ export const useGoogleDriveSync = () => {
     try {
       console.log('🔄 Syncing: Checking for updates and uploading changes...');
       
-      // Get or create the file
+      // Get or create the file (uses cache to reduce API calls)
       const file = await getOrCreateFile();
       
       // Download current content from Drive
@@ -204,6 +260,18 @@ export const useGoogleDriveSync = () => {
 
       const localData = getAllData();
       
+      // Quick check: if data is identical, skip everything
+      const localChecksum = quickChecksum(localData);
+      const driveChecksum = driveData ? quickChecksum(driveData) : null;
+      
+      if (localChecksum === driveChecksum) {
+        console.log('⏭️ Data identical on both sides, skipping sync (saves API calls)');
+        setSyncStatus('success');
+        setLastSyncTime(Date.now());
+        isSyncingRef.current = false;
+        return;
+      }
+      
       // Sync logic: Use the most recent data
       if (driveData && driveData.lastModified && driveData.lastModified > localData.lastModified) {
         // Drive data is newer, update local
@@ -212,7 +280,11 @@ export const useGoogleDriveSync = () => {
       } else {
         // Local data is newer or equal, upload to Drive
         console.log('📤 Local data is newer - uploading to Drive');
-        await uploadFile(file.id, localData);
+        const uploadResult = await uploadFile(file.id, localData);
+        
+        if (uploadResult.skipped) {
+          console.log('⏭️ Upload skipped, data unchanged');
+        }
       }
 
       setSyncStatus('success');
@@ -322,7 +394,10 @@ export const useGoogleDriveSync = () => {
     window.gapi.client.setToken(null);
     setIsAuthenticated(false);
     fileIdRef.current = null;
+    fileMetadataRef.current = null;
     userEmailRef.current = null;
+    lastUploadHashRef.current = null;
+    lastDownloadHashRef.current = null;
     setSyncStatus('idle');
     setLastSyncTime(null);
   }, []);
