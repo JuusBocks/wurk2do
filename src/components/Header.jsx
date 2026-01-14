@@ -21,7 +21,7 @@ export const Header = ({
   const getSyncStatusText = () => {
     switch (syncStatus) {
       case 'syncing': return 'Syncing...';
-      case 'success': return lastSyncTime ? `Synced ${format(lastSyncTime, 'HH:mm:ss')}` : 'Synced';
+      case 'success': return lastSyncTime ? `Last: ${format(lastSyncTime, 'HH:mm')}` : 'Synced';
       case 'error': return 'Sync failed';
       default: return 'Not synced';
     }
@@ -66,9 +66,14 @@ export const Header = ({
                 onClick={onManualSync}
                 disabled={syncStatus === 'syncing'}
                 className="p-2 hover:bg-dark-hover active:bg-dark-border rounded transition-colors disabled:opacity-50 touch-manipulation"
-                title="Manual sync"
+                title="Sync now - upload changes and check for updates"
               >
-                <svg className="h-5 w-5 sm:h-4 sm:w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg 
+                  className={`h-5 w-5 sm:h-4 sm:w-4 text-gray-400 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`}
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>

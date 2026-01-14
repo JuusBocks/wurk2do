@@ -22,6 +22,7 @@ export const DAYS_OF_WEEK = [
   'Sunday'
 ];
 
-// Sync debounce delay (ms)
-export const SYNC_DELAY = 2000;
+// Sync settings
+export const SYNC_DELAY = 2000; // Debounce for multiple quick changes (ms)
+export const AUTO_SYNC_INTERVAL = 8 * 60 * 60 * 1000; // Auto-sync every 8 hours (28800000ms)
 

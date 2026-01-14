@@ -13,7 +13,7 @@ function App() {
     handleAuthClick,
     handleSignOut,
     manualSync,
-    triggerSync,
+    trackLocalChange,
   } = useGoogleDriveSync();
 
   useEffect(() => {
@@ -53,13 +53,13 @@ function App() {
           </h2>
           <p className="text-xs sm:text-sm text-gray-400">
             {isAuthenticated 
-              ? '✓ Synced with Google Drive'
+              ? '✓ Auto-syncs every 8 hours • Click sync to update now'
               : '⚠️ Connect Drive for cloud sync'
             }
           </p>
         </div>
 
-        <WeekView onDataChange={triggerSync} />
+        <WeekView onDataChange={trackLocalChange} />
       </main>
 
       {/* Footer */}

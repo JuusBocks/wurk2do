@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { GOOGLE_CONFIG, SYNC_DELAY } from '../config/constants';
+import { GOOGLE_CONFIG, SYNC_DELAY, AUTO_SYNC_INTERVAL } from '../config/constants';
 import { useTaskStore } from '../store/useTaskStore';
 
 export const useGoogleDriveSync = () => {
@@ -14,6 +14,8 @@ export const useGoogleDriveSync = () => {
   const fileIdRef = useRef(null);
   const syncTimeoutRef = useRef(null);
   const isSyncingRef = useRef(false);
+  const autoSyncIntervalRef = useRef(null);
+  const lastLocalChangeRef = useRef(Date.now());
   
   const loadData = useTaskStore(state => state.loadData);
   const getAllData = useTaskStore(state => state.getAllData);
@@ -158,7 +160,7 @@ export const useGoogleDriveSync = () => {
     }
   }, []);
 
-  // Sync data between LocalStorage and Google Drive
+  // Sync data between LocalStorage and Google Drive (bidirectional)
   const syncData = useCallback(async () => {
     if (!isAuthenticated || isSyncingRef.current) return;
     
@@ -167,6 +169,8 @@ export const useGoogleDriveSync = () => {
     setError(null);
 
     try {
+      console.log('🔄 Syncing: Checking for updates and uploading changes...');
+      
       // Get or create the file
       const file = await getOrCreateFile();
       
@@ -174,9 +178,10 @@ export const useGoogleDriveSync = () => {
       let driveData = null;
       try {
         driveData = await downloadFile(file.id);
+        console.log('📥 Downloaded data from Drive');
       } catch (err) {
         // File might be empty, use local data
-        console.log('Could not download file, using local data');
+        console.log('⚠️ Could not download file, using local data');
       }
 
       const localData = getAllData();
@@ -184,18 +189,19 @@ export const useGoogleDriveSync = () => {
       // Sync logic: Use the most recent data
       if (driveData && driveData.lastModified && driveData.lastModified > localData.lastModified) {
         // Drive data is newer, update local
-        console.log('Drive data is newer, updating local storage');
+        console.log('☁️ Drive has newer data - updating local storage');
         loadData(driveData);
       } else {
         // Local data is newer or equal, upload to Drive
-        console.log('Local data is newer, uploading to Drive');
+        console.log('📤 Local data is newer - uploading to Drive');
         await uploadFile(file.id, localData);
       }
 
       setSyncStatus('success');
       setLastSyncTime(Date.now());
+      console.log('✅ Sync complete!');
     } catch (err) {
-      console.error('Sync error:', err);
+      console.error('❌ Sync error:', err);
       setSyncStatus('error');
       setError(err.message || 'Sync failed');
     } finally {
@@ -203,18 +209,11 @@ export const useGoogleDriveSync = () => {
     }
   }, [isAuthenticated, getOrCreateFile, downloadFile, uploadFile, getAllData, loadData]);
 
-  // Debounced sync - called when local data changes
-  const debouncedSync = useCallback(() => {
+  // Track local changes (no longer auto-syncs immediately)
+  const trackLocalChange = useCallback(() => {
     if (!isAuthenticated) return;
-    
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current);
-    }
-    
-    syncTimeoutRef.current = setTimeout(() => {
-      syncData();
-    }, SYNC_DELAY);
-  }, [isAuthenticated, syncData]);
+    lastLocalChangeRef.current = Date.now();
+  }, [isAuthenticated]);
 
   // Handle authentication
   const handleAuthClick = useCallback(() => {
@@ -235,12 +234,30 @@ export const useGoogleDriveSync = () => {
       
       // Initial sync after authentication
       await syncData();
+      
+      // Start 8-hour auto-sync
+      if (autoSyncIntervalRef.current) {
+        clearInterval(autoSyncIntervalRef.current);
+      }
+      autoSyncIntervalRef.current = setInterval(() => {
+        console.log('⏰ 8-hour auto-sync triggered');
+        syncData();
+      }, AUTO_SYNC_INTERVAL);
     };
 
     if (accessTokenRef.current) {
       // Already have token, just sync
       setIsAuthenticated(true);
       syncData();
+      
+      // Start 8-hour auto-sync
+      if (autoSyncIntervalRef.current) {
+        clearInterval(autoSyncIntervalRef.current);
+      }
+      autoSyncIntervalRef.current = setInterval(() => {
+        console.log('⏰ 8-hour auto-sync triggered');
+        syncData();
+      }, AUTO_SYNC_INTERVAL);
     } else {
       // Request new token
       tokenClientRef.current.requestAccessToken({ prompt: 'consent' });
@@ -256,6 +273,12 @@ export const useGoogleDriveSync = () => {
       accessTokenRef.current = null;
     }
     
+    // Clear auto-sync interval
+    if (autoSyncIntervalRef.current) {
+      clearInterval(autoSyncIntervalRef.current);
+      autoSyncIntervalRef.current = null;
+    }
+    
     window.gapi.client.setToken(null);
     setIsAuthenticated(false);
     fileIdRef.current = null;
@@ -263,23 +286,17 @@ export const useGoogleDriveSync = () => {
     setLastSyncTime(null);
   }, []);
 
-  // Watch for local data changes and trigger sync
+  // Cleanup on unmount
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const handleStorageChange = () => {
-      debouncedSync();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
+      if (autoSyncIntervalRef.current) {
+        clearInterval(autoSyncIntervalRef.current);
+      }
     };
-  }, [isAuthenticated, debouncedSync]);
+  }, []);
 
   return {
     isInitialized,
@@ -290,7 +307,7 @@ export const useGoogleDriveSync = () => {
     handleAuthClick,
     handleSignOut,
     manualSync: syncData,
-    triggerSync: debouncedSync,
+    trackLocalChange, // Track changes but don't auto-sync
   };
 };
 
