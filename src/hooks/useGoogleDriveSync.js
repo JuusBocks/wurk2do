@@ -128,23 +128,33 @@ export const useGoogleDriveSync = () => {
       
       let content = response.result;
       
-      // If content is encrypted, decrypt it
-      if (userEmailRef.current && typeof content === 'string' && isEncrypted(content)) {
-        console.log('🔓 Decrypting data from Drive...');
-        const decryptedContent = await decryptData(content, userEmailRef.current);
-        
-        // Try to decompress if compression is supported
-        if (isCompressionSupported()) {
-          try {
-            const decompressedContent = await decompressData(decryptedContent);
-            content = JSON.parse(decompressedContent);
-            console.log('📦 Decompressed data');
-          } catch {
-            // Data might not be compressed (backward compatibility)
-            content = JSON.parse(decryptedContent);
+      // If content is encrypted (older versions), try to decrypt; otherwise parse as plain JSON
+      if (typeof content === 'string') {
+        try {
+          if (userEmailRef.current && isEncrypted(content)) {
+            console.log('🔓 Decrypting legacy encrypted data from Drive...');
+            const decryptedContent = await decryptData(content, userEmailRef.current);
+            
+            // Try to decompress if compression is supported
+            if (isCompressionSupported()) {
+              try {
+                const decompressedContent = await decompressData(decryptedContent);
+                content = JSON.parse(decompressedContent);
+                console.log('📦 Decompressed data');
+              } catch {
+                // Data might not be compressed (backward compatibility)
+                content = JSON.parse(decryptedContent);
+              }
+            } else {
+              content = JSON.parse(decryptedContent);
+            }
+          } else {
+            // New behavior: plain JSON string, no encryption
+            content = JSON.parse(content);
           }
-        } else {
-          content = JSON.parse(decryptedContent);
+        } catch (err) {
+          console.warn('⚠️ Failed to parse Drive content, treating as empty:', err);
+          content = { tasks: {}, lastModified: Date.now() };
         }
       }
       
@@ -180,21 +190,17 @@ export const useGoogleDriveSync = () => {
         modifiedTime: new Date().toISOString(),
       };
 
+      // NEW: Store plain JSON (optionally compressed) in Drive for maximum compatibility.
+      // Older encrypted files are still read by downloadFile, but new writes are not encrypted.
       let contentToUpload = dataString;
       
-      // Compress data before encryption if supported
+      // Optionally compress plain JSON (keeps it readable if downloaded, just smaller)
       if (isCompressionSupported()) {
         const originalSize = new Blob([contentToUpload]).size;
         contentToUpload = await compressData(contentToUpload);
         const compressedSize = new Blob([contentToUpload]).size;
         const savings = ((1 - compressedSize / originalSize) * 100).toFixed(1);
         console.log(`📦 Compressed data: ${originalSize}B → ${compressedSize}B (${savings}% smaller)`);
-      }
-      
-      // Encrypt data before uploading if user email is available
-      if (userEmailRef.current) {
-        console.log('🔒 Encrypting data before upload...');
-        contentToUpload = await encryptData(contentToUpload, userEmailRef.current);
       }
 
       const multipartRequestBody =
