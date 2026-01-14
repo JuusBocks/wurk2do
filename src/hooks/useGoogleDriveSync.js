@@ -306,7 +306,7 @@ export const useGoogleDriveSync = () => {
   }, [isAuthenticated]);
 
   // Handle authentication
-  const handleAuthClick = useCallback(() => {
+  const handleAuthClick = useCallback(async () => {
     if (!tokenClientRef.current) {
       setError('Google Sign-In not initialized');
       return;
