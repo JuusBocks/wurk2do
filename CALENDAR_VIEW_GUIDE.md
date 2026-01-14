@@ -52,19 +52,35 @@ Duration: 0.5 hours
 Result: A small 30-minute block appears at 9 AM
 ```
 
-## Editing Task Duration
+## Editing Tasks (Full Edit Mode!)
 
-### Method 1: Direct Input (Recommended)
-1. Find your task in the calendar
-2. Look for the duration input box at the bottom (shows current hours)
-3. Click the number input
-4. Change the value (e.g., 1 → 2)
-5. Task **automatically resizes** to span 2 hours!
+### ✏️ Edit Task Name
+1. **Click anywhere on the task block**
+2. Text field appears with current name
+3. Type your changes
+4. Press **Enter** to save or **Escape** to cancel
+5. Auto-saves when you click away
 
-### Method 2: Priority Change
-- Changing priority changes the color
-- Red tasks (High priority) stand out more
-- Visual cue for importance
+### ⏰ Edit Duration
+1. Find the duration input at bottom of task (e.g., "2.0 hrs")
+2. Click the number input
+3. Change the value (e.g., 1 → 2)
+4. Task **automatically resizes** to span 2 hours!
+
+### ⭐ Change Priority
+1. Hover over task to reveal action buttons
+2. Click the **⭐** star button
+3. Cycles through: None (blue) → Low (yellow) → Medium (orange) → High (red)
+4. Color changes instantly + task re-sorts by priority
+
+### ✓ Mark Complete/Incomplete
+- Click the **○** or **✓** checkbox
+- Task becomes semi-transparent when completed
+- Click again to mark incomplete
+
+### Other Actions (on hover)
+- **⏱** Start timer for this task
+- **×** Delete task
 
 ## Task Display
 
@@ -79,12 +95,13 @@ Each task block shows:
 ```
 
 ### Components:
-- **Checkbox (○/✓)**: Mark complete/incomplete
-- **Task Name**: Your task description
+- **Checkbox (○/✓)**: Mark complete/incomplete (click to toggle)
+- **Task Name**: Click to edit inline! Shows "Click to edit" hint on hover
 - **Priority Indicator**: 🔴 (High), 🟠 (Medium), 🟡 (Low)
 - **Start Time**: When the task begins
-- **Duration Input**: Editable hours (click to change)
+- **Duration Input**: Editable hours (click to change, auto-resizes task)
 - **Action Buttons** (on hover):
+  - ⭐ Change priority (cycles through levels)
   - ⏱ Start timer
   - × Delete task
 
@@ -173,10 +190,19 @@ Change duration to 3 hours:
 
 ## Keyboard Shortcuts
 
+### When Adding a Task:
 - **Enter**: Add task (when form is open)
 - **Escape**: Cancel task creation
-- **Tab**: Navigate between inputs
-- **Number input**: Change duration instantly
+- **Tab**: Navigate between name and duration inputs
+
+### When Editing a Task:
+- **Enter**: Save changes
+- **Escape**: Cancel editing (reverts changes)
+- **Click away**: Auto-save changes
+
+### General:
+- **Tab**: Navigate between tasks and inputs
+- **Space**: Toggle completion (when checkbox focused)
 
 ## Best Practices
 
