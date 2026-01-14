@@ -31,7 +31,7 @@ const hourToTimeSlot = (hour) => {
   return `${hour - 12} PM`;
 };
 
-export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onTaskSelectForTimer }) => {
+export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onTaskSelectForTimer, selectedTimerTasks = [] }) => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskDuration, setNewTaskDuration] = useState(1);
@@ -360,6 +360,7 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
                       {/* Positioned Tasks */}
                       {positionedTasks.map(task => {
                         const isEditing = editingTask?.day === day && editingTask?.id === task.id;
+                        const isInTimer = selectedTimerTasks.some(t => t.id === task.id && t.day === day);
                         
                         // Calculate horizontal position for overlapping tasks
                         const columnWidth = 100 / task.totalColumns;
@@ -422,8 +423,14 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
                                       e.stopPropagation();
                                       onTaskSelectForTimer && onTaskSelectForTimer({ ...task, day });
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
-                                    title="Add to timer focus list"
+                                    className={`
+                                      transition-all hover:scale-110
+                                      ${isInTimer 
+                                        ? 'opacity-100 text-blue-500' 
+                                        : 'opacity-0 group-hover:opacity-100'
+                                      }
+                                    `}
+                                    title={isInTimer ? "In timer list - Click to remove" : "Add to timer focus list"}
                                   >
                                     ⏱
                                   </button>

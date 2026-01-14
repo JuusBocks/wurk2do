@@ -3,7 +3,7 @@ import { Droppable } from '@hello-pangea/dnd';
 import { TaskCard } from './TaskCard';
 import { format } from 'date-fns';
 
-export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteTask, isToday, onTaskSelectForTimer }) => {
+export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteTask, isToday, onTaskSelectForTimer, selectedTimerTasks = [] }) => {
   const [newTaskText, setNewTaskText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
@@ -128,17 +128,21 @@ export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteT
                 if (aPriority !== bPriority) return bPriority - aPriority; // Higher priority first
                 return 0;
               })
-              .map((task, index) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  index={index}
-                  day={day}
-                  onUpdate={onUpdateTask}
-                  onDelete={onDeleteTask}
-                  onStartTimer={() => onTaskSelectForTimer && onTaskSelectForTimer({ ...task, day })}
-                />
-              ))}
+              .map((task, index) => {
+                const isInTimer = selectedTimerTasks.some(t => t.id === task.id && t.day === day);
+                return (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    day={day}
+                    onUpdate={onUpdateTask}
+                    onDelete={onDeleteTask}
+                    onStartTimer={() => onTaskSelectForTimer && onTaskSelectForTimer({ ...task, day })}
+                    isInTimer={isInTimer}
+                  />
+                );
+              })}
             {provided.placeholder}
 
             {/* Add Task Button/Form */}

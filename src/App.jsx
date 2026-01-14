@@ -38,9 +38,12 @@ function App() {
   const handleAddTaskToTimer = useCallback((task) => {
     setSelectedTasksForTimer(prev => {
       // Check if task is already in the list
-      if (prev.find(t => t.id === task.id && t.day === task.day)) {
-        return prev; // Already added
+      const existingIndex = prev.findIndex(t => t.id === task.id && t.day === task.day);
+      if (existingIndex >= 0) {
+        // Remove if already added (toggle behavior)
+        return prev.filter((_, index) => index !== existingIndex);
       }
+      // Add if not in list
       return [...prev, task];
     });
   }, []);
@@ -121,6 +124,7 @@ function App() {
           <WeekView 
             onDataChange={trackLocalChange} 
             onTaskSelectForTimer={handleAddTaskToTimer}
+            selectedTimerTasks={selectedTasksForTimer}
           />
         )}
 
@@ -140,6 +144,7 @@ function App() {
               trackLocalChange();
             }}
             onTaskSelectForTimer={handleAddTaskToTimer}
+            selectedTimerTasks={selectedTasksForTimer}
           />
         )}
 

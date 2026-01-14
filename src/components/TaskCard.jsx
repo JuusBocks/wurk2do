@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 
-export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer }) => {
+export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer, isInTimer = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(task.text);
   const [isEditingHours, setIsEditingHours] = useState(false);
@@ -257,11 +257,17 @@ export const TaskCard = ({ task, index, day, onUpdate, onDelete, onStartTimer })
 
             {/* Timer Button */}
             <button
-              onClick={() => onStartTimer && onStartTimer(task)}
-              className="flex-shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-gray-400 hover:text-blue-400 active:text-blue-500 p-1 -m-1 touch-manipulation"
-              title="Start timer for this task"
+              onClick={() => onStartTimer && onStartTimer({ ...task, day })}
+              className={`
+                flex-shrink-0 transition-all p-1 -m-1 touch-manipulation
+                ${isInTimer 
+                  ? 'opacity-100 text-blue-500' 
+                  : 'sm:opacity-0 sm:group-hover:opacity-100 text-gray-400 hover:text-blue-400 active:text-blue-500'
+                }
+              `}
+              title={isInTimer ? "In timer list - Click to remove" : "Add to timer focus list"}
             >
-              <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 sm:w-4 sm:h-4" fill={isInTimer ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </button>
