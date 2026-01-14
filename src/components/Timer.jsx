@@ -85,6 +85,25 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
   const completedCount = selectedTasks.filter(t => t.completed).length;
   const totalTasks = selectedTasks.length;
 
+  // Compute suggested session duration based on selected tasks' estimated hours
+  const totalEstimatedMinutes = selectedTasks.reduce(
+    (sum, t) => sum + ((t.estimatedHours || 0) * 60),
+    0
+  );
+
+  // Simple heuristic:
+  // - Focus time ≈ total estimated minutes (clamped)
+  // - Break time ≈ 20% of focus time (clamped)
+  const suggestedFocusMinutes =
+    totalEstimatedMinutes > 0
+      ? Math.min(Math.max(Math.round(totalEstimatedMinutes), 5), 180)
+      : null;
+
+  const suggestedBreakMinutes =
+    suggestedFocusMinutes !== null
+      ? Math.min(Math.max(Math.round(suggestedFocusMinutes * 0.2), 5), 30)
+      : null;
+
   // Compact view (for top of app)
   if (compact && !isFocusMode) {
     return (
@@ -358,6 +377,49 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Suggested Session (based on task durations) */}
+        {suggestedFocusMinutes !== null && suggestedBreakMinutes !== null && (
+          <div className="w-full max-w-md mb-8 bg-dark-surface rounded-xl border border-dark-border p-4">
+            <h3 className="text-sm font-semibold text-gray-200 mb-2">
+              Suggested session from task durations
+            </h3>
+            <p className="text-xs text-gray-400 mb-3">
+              Based on your selected tasks' estimated hours:
+            </p>
+            <div className="flex items-center justify-between text-sm text-gray-200 mb-3">
+              <div>
+                <div className="font-mono text-base text-blue-400">
+                  {suggestedFocusMinutes} min
+                </div>
+                <div className="text-xs text-gray-400">Focus time</div>
+              </div>
+              <div>
+                <div className="font-mono text-base text-emerald-400">
+                  {suggestedBreakMinutes} min
+                </div>
+                <div className="text-xs text-gray-400">Break suggestion</div>
+              </div>
+              <div>
+                <div className="font-mono text-base text-gray-300">
+                  {suggestedFocusMinutes + suggestedBreakMinutes} min
+                </div>
+                <div className="text-xs text-gray-400">Total block</div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <button
+                onClick={() => handleDurationChange(suggestedFocusMinutes)}
+                className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 rounded-lg text-xs font-medium text-white transition-colors touch-manipulation"
+              >
+                Use {suggestedFocusMinutes} min focus
+              </button>
+              <span className="text-[11px] text-gray-500">
+                You can still change it manually below.
+              </span>
             </div>
           </div>
         )}
