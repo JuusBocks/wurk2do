@@ -79,6 +79,7 @@ export const WeekView = ({ onDataChange, onTaskSelectForTimer }) => {
               onAddTask={handleAddTask}
               onUpdateTask={handleUpdateTask}
               onDeleteTask={handleDeleteTask}
+              onTaskSelectForTimer={onTaskSelectForTimer}
             />
           </div>
         ))}

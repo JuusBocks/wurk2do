@@ -101,10 +101,19 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
     };
   };
 
-  // Get tasks positioned for rendering
+  // Check if two tasks overlap in time
+  const tasksOverlap = (task1, task2) => {
+    const end1 = task1.startHour + task1.duration;
+    const end2 = task2.startHour + task2.duration;
+    return task1.startHour < end2 && task2.startHour < end1;
+  };
+
+  // Get tasks positioned for rendering with overlap detection
   const getPositionedTasks = (day) => {
     const dayTasks = tasks[day] || [];
-    return dayTasks.map(task => {
+    
+    // Parse all tasks with their time info
+    const parsedTasks = dayTasks.map(task => {
       const { startHour, duration, taskName } = parseTask(task);
       const top = startHour * HOUR_HEIGHT; // 12 AM (0) is our starting hour
       const height = duration * HOUR_HEIGHT;
@@ -115,9 +124,60 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
         height,
         startHour,
         duration,
-        taskName
+        taskName,
+        column: 0,
+        totalColumns: 1
       };
     });
+
+    // Sort by start time, then by duration (longer first)
+    const sortedTasks = [...parsedTasks].sort((a, b) => {
+      if (a.startHour !== b.startHour) return a.startHour - b.startHour;
+      return b.duration - a.duration;
+    });
+
+    // Detect overlaps and assign columns
+    sortedTasks.forEach((task, index) => {
+      // Find all tasks that overlap with this one
+      const overlapping = sortedTasks.filter((other, otherIndex) => {
+        if (index === otherIndex) return false;
+        return tasksOverlap(task, other);
+      });
+
+      if (overlapping.length > 0) {
+        // Find which columns are already taken by overlapping tasks
+        const usedColumns = new Set();
+        overlapping.forEach(other => {
+          if (other.column !== undefined) {
+            usedColumns.add(other.column);
+          }
+        });
+
+        // Assign to the first available column
+        let column = 0;
+        while (usedColumns.has(column)) {
+          column++;
+        }
+        task.column = column;
+
+        // Calculate total columns needed for this overlap group
+        const maxColumn = Math.max(
+          column,
+          ...overlapping.map(t => t.column || 0)
+        );
+        const totalColumns = maxColumn + 1;
+
+        // Update totalColumns for all tasks in this overlap group
+        task.totalColumns = totalColumns;
+        overlapping.forEach(other => {
+          if (other.totalColumns < totalColumns) {
+            other.totalColumns = totalColumns;
+          }
+        });
+      }
+    });
+
+    return sortedTasks;
   };
 
   const getPriorityColor = (priority) => {
@@ -301,20 +361,30 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
                       {positionedTasks.map(task => {
                         const isEditing = editingTask?.day === day && editingTask?.id === task.id;
                         
+                        // Calculate horizontal position for overlapping tasks
+                        const columnWidth = 100 / task.totalColumns;
+                        const leftPercent = task.column * columnWidth;
+                        const widthPercent = columnWidth;
+                        
                         return (
                           <div
                             key={task.id}
                             className={`
-                              absolute left-0 right-0 mx-0.5 p-2 rounded border-l-4 shadow-md
+                              absolute p-2 rounded border-l-4 shadow-md
                               transition-all cursor-pointer group
                               ${getPriorityColor(task.priority || 0)}
                               ${task.completed ? 'opacity-50' : 'opacity-100'}
                               ${isEditing ? 'ring-2 ring-white ring-offset-1' : ''}
+                              ${task.totalColumns > 1 ? 'shadow-lg' : ''}
                             `}
                             style={{
                               top: `${task.top}px`,
+                              left: `${leftPercent}%`,
+                              width: `${widthPercent}%`,
                               height: `${Math.max(task.height - 2, HOUR_HEIGHT * 0.5)}px`,
-                              minHeight: '40px'
+                              minHeight: '40px',
+                              paddingLeft: task.totalColumns > 1 ? '4px' : '8px',
+                              paddingRight: task.totalColumns > 1 ? '4px' : '8px',
                             }}
                             onClick={(e) => handleTaskClick(day, task, e)}
                           >
@@ -325,46 +395,51 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
                                   e.stopPropagation();
                                   onUpdateTask(day, task.id, { completed: !task.completed });
                                 }}
-                                className="flex-shrink-0 text-sm font-bold hover:scale-110 transition-transform"
+                                className={`
+                                  flex-shrink-0 font-bold hover:scale-110 transition-transform
+                                  ${task.totalColumns > 1 ? 'text-xs' : 'text-sm'}
+                                `}
                                 title={task.completed ? "Mark incomplete" : "Mark complete"}
                               >
                                 {task.completed ? '✓' : '○'}
                               </button>
-                              <div className="flex gap-1">
-                                {/* Priority Toggle */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    togglePriority(day, task.id, task.priority);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all text-xs"
-                                  title="Change priority"
-                                >
-                                  ⭐
-                                </button>
-                                {/* Timer */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onTaskSelectForTimer && onTaskSelectForTimer(task);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
-                                  title="Start timer"
-                                >
-                                  ⏱
-                                </button>
-                                {/* Delete */}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteTask(day, task.id);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
-                                  title="Delete"
-                                >
-                                  ×
-                                </button>
-                              </div>
+                              {task.totalColumns <= 2 && (
+                                <div className="flex gap-1">
+                                  {/* Priority Toggle */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      togglePriority(day, task.id, task.priority);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all text-xs"
+                                    title="Change priority"
+                                  >
+                                    ⭐
+                                  </button>
+                                  {/* Timer */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onTaskSelectForTimer && onTaskSelectForTimer({ ...task, day });
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
+                                    title="Add to timer focus list"
+                                  >
+                                    ⏱
+                                  </button>
+                                  {/* Delete */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteTask(day, task.id);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 hover:scale-110 transition-all"
+                                    title="Delete"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              )}
                             </div>
 
                             {/* Task Name - Editable */}
@@ -381,43 +456,61 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
                               />
                             ) : (
                               <div 
-                                className={`text-xs sm:text-sm font-medium mb-1 ${task.completed ? 'line-through' : ''}`}
-                                title="Click to edit"
+                                className={`
+                                  ${task.totalColumns > 1 ? 'text-[10px]' : 'text-xs sm:text-sm'}
+                                  font-medium mb-1 
+                                  ${task.completed ? 'line-through' : ''} 
+                                  truncate
+                                `}
+                                title={`${task.taskName}${task.totalColumns > 1 ? ' (overlapping)' : ''} - Click to edit`}
                               >
                                 {task.taskName}
                               </div>
                             )}
 
                             {/* Task Time Info */}
-                            <div className="text-xs opacity-90 flex items-center justify-between gap-2">
-                              <span className="font-mono">{hourToTimeSlot(task.startHour)}</span>
-                              <span className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  value={task.duration}
-                                  onChange={(e) => handleDurationChange(day, task.id, parseFloat(e.target.value))}
-                                  onClick={(e) => e.stopPropagation()}
-                                  min="0.5"
-                                  max="12"
-                                  step="0.5"
-                                  className="w-12 bg-black/20 border border-white/20 rounded px-1 py-0.5 text-xs text-center hover:bg-black/40 focus:bg-black/40 focus:ring-1 focus:ring-white"
-                                  title="Change duration (hours)"
-                                />
-                                <span>hrs</span>
-                              </span>
+                            <div className={`
+                              ${task.totalColumns > 1 ? 'text-[10px]' : 'text-xs'}
+                              opacity-90 flex items-center 
+                              ${task.totalColumns > 1 ? 'flex-col gap-0.5' : 'justify-between gap-2'}
+                            `}>
+                              <span className="font-mono text-[10px]">{hourToTimeSlot(task.startHour)}</span>
+                              {task.totalColumns <= 2 && (
+                                <span className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    value={task.duration}
+                                    onChange={(e) => handleDurationChange(day, task.id, parseFloat(e.target.value))}
+                                    onClick={(e) => e.stopPropagation()}
+                                    min="0.5"
+                                    max="12"
+                                    step="0.5"
+                                    className={`
+                                      ${task.totalColumns > 1 ? 'w-10 text-[10px]' : 'w-12 text-xs'}
+                                      bg-black/20 border border-white/20 rounded px-1 py-0.5 text-center 
+                                      hover:bg-black/40 focus:bg-black/40 focus:ring-1 focus:ring-white
+                                    `}
+                                    title="Change duration (hours)"
+                                  />
+                                  <span className="text-[10px]">{task.totalColumns > 1 ? 'h' : 'hrs'}</span>
+                                </span>
+                              )}
+                              {task.totalColumns > 2 && (
+                                <span className="text-[10px]">{task.duration}h</span>
+                              )}
                             </div>
 
                             {/* Priority Indicator */}
                             {task.priority > 0 && (
-                              <div className="absolute top-1 right-1 text-sm">
+                              <div className={`absolute top-1 right-1 ${task.totalColumns > 1 ? 'text-xs' : 'text-sm'}`}>
                                 {task.priority === 3 && '🔴'}
                                 {task.priority === 2 && '🟠'}
                                 {task.priority === 1 && '🟡'}
                               </div>
                             )}
 
-                            {/* Edit Hint */}
-                            {!isEditing && (
+                            {/* Edit Hint - hidden when overlapping */}
+                            {!isEditing && task.totalColumns === 1 && (
                               <div className="absolute bottom-1 left-2 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity">
                                 Click to edit
                               </div>

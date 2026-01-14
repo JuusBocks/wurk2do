@@ -10,7 +10,7 @@ import { useTaskStore } from './store/useTaskStore';
 
 function App() {
   const [viewMode, setViewMode] = useState('week'); // 'week', 'calendar', or 'summary' - default to week
-  const [selectedTaskForTimer, setSelectedTaskForTimer] = useState(null);
+  const [selectedTasksForTimer, setSelectedTasksForTimer] = useState([]);
   const tasks = useTaskStore(state => state.tasks);
   const addTask = useTaskStore(state => state.addTask);
   const updateTask = useTaskStore(state => state.updateTask);
@@ -34,6 +34,39 @@ function App() {
       manualSync();
     }
   }, [isAuthenticated, manualSync]);
+
+  const handleAddTaskToTimer = useCallback((task) => {
+    setSelectedTasksForTimer(prev => {
+      // Check if task is already in the list
+      if (prev.find(t => t.id === task.id && t.day === task.day)) {
+        return prev; // Already added
+      }
+      return [...prev, task];
+    });
+  }, []);
+
+  const handleRemoveTaskFromTimer = useCallback((taskId, day) => {
+    setSelectedTasksForTimer(prev => 
+      prev.filter(t => !(t.id === taskId && t.day === day))
+    );
+  }, []);
+
+  const handleClearTimerTasks = useCallback(() => {
+    setSelectedTasksForTimer([]);
+  }, []);
+
+  const handleTaskComplete = useCallback((day, taskId) => {
+    updateTask(day, taskId, { completed: true });
+    trackLocalChange();
+    // Update the task in the timer list
+    setSelectedTasksForTimer(prev =>
+      prev.map(t => 
+        t.id === taskId && t.day === day 
+          ? { ...t, completed: true }
+          : t
+      )
+    );
+  }, [updateTask, trackLocalChange]);
 
   if (!isInitialized) {
     return (
@@ -61,8 +94,9 @@ function App() {
       {/* Timer Bar */}
       <Timer 
         compact={true} 
-        selectedTask={selectedTaskForTimer}
-        onTaskSelect={setSelectedTaskForTimer}
+        selectedTasks={selectedTasksForTimer}
+        onTaskComplete={handleTaskComplete}
+        onClearTasks={handleClearTimerTasks}
       />
 
       <main className="py-4 sm:py-6 pb-24 sm:pb-28">
@@ -86,7 +120,7 @@ function App() {
         {viewMode === 'week' && (
           <WeekView 
             onDataChange={trackLocalChange} 
-            onTaskSelectForTimer={setSelectedTaskForTimer}
+            onTaskSelectForTimer={handleAddTaskToTimer}
           />
         )}
 
@@ -105,7 +139,7 @@ function App() {
               deleteTask(day, taskId);
               trackLocalChange();
             }}
-            onTaskSelectForTimer={setSelectedTaskForTimer}
+            onTaskSelectForTimer={handleAddTaskToTimer}
           />
         )}
 

@@ -3,7 +3,7 @@ import { Droppable } from '@hello-pangea/dnd';
 import { TaskCard } from './TaskCard';
 import { format } from 'date-fns';
 
-export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteTask, isToday }) => {
+export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteTask, isToday, onTaskSelectForTimer }) => {
   const [newTaskText, setNewTaskText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
 
@@ -136,6 +136,7 @@ export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteT
                   day={day}
                   onUpdate={onUpdateTask}
                   onDelete={onDeleteTask}
+                  onStartTimer={() => onTaskSelectForTimer && onTaskSelectForTimer({ ...task, day })}
                 />
               ))}
             {provided.placeholder}
