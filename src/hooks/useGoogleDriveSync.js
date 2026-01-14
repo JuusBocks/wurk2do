@@ -234,7 +234,64 @@ export const useGoogleDriveSync = () => {
     }
   }, []);
 
-  // Sync data between LocalStorage and Google Drive (bidirectional)
+  // Intelligent merge function - combines local and Drive data without losing anything
+  const mergeData = useCallback((localData, driveData) => {
+    if (!driveData) return localData;
+    if (!localData.tasks || Object.keys(localData.tasks).length === 0) return driveData;
+    
+    console.log('🔀 Merging local and Drive data intelligently...');
+    const mergedTasks = {};
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    DAYS.forEach(day => {
+      const localDayTasks = localData.tasks[day] || [];
+      const driveDayTasks = driveData.tasks?.[day] || [];
+      
+      // Create a map to track tasks by ID
+      const taskMap = new Map();
+      
+      // Add all Drive tasks first
+      driveDayTasks.forEach(task => {
+        taskMap.set(task.id, { ...task, source: 'drive' });
+      });
+      
+      // Add or update with local tasks
+      localDayTasks.forEach(task => {
+        const existingTask = taskMap.get(task.id);
+        
+        if (!existingTask) {
+          // New local task, add it
+          taskMap.set(task.id, { ...task, source: 'local' });
+        } else {
+          // Task exists in both - use the one with the most recent modification
+          const localModified = task.lastModified || 0;
+          const driveModified = existingTask.lastModified || 0;
+          
+          if (localModified >= driveModified) {
+            taskMap.set(task.id, { ...task, source: 'local-updated' });
+          }
+          // else keep the Drive version
+        }
+      });
+      
+      mergedTasks[day] = Array.from(taskMap.values()).map(task => {
+        const { source, ...cleanTask } = task;
+        return cleanTask;
+      });
+    });
+    
+    const mergedData = {
+      ...driveData,
+      tasks: mergedTasks,
+      lastModified: Date.now(),
+      mergedAt: new Date().toISOString(),
+    };
+    
+    console.log('✅ Merge complete - all tasks preserved!');
+    return mergedData;
+  }, []);
+
+  // Sync data between LocalStorage and Google Drive (bidirectional with intelligent merging)
   const syncData = useCallback(async () => {
     if (!isAuthenticated || isSyncingRef.current) return;
     
@@ -272,19 +329,25 @@ export const useGoogleDriveSync = () => {
         return;
       }
       
-      // Sync logic: Use the most recent data
-      if (driveData && driveData.lastModified && driveData.lastModified > localData.lastModified) {
-        // Drive data is newer, update local
-        console.log('☁️ Drive has newer data - updating local storage');
-        loadData(driveData);
-      } else {
-        // Local data is newer or equal, upload to Drive
-        console.log('📤 Local data is newer - uploading to Drive');
-        const uploadResult = await uploadFile(file.id, localData);
-        
-        if (uploadResult.skipped) {
-          console.log('⏭️ Upload skipped, data unchanged');
-        }
+      // Intelligent merge: Combine both datasets without losing data
+      const mergedData = mergeData(localData, driveData);
+      
+      // Check if merge resulted in changes
+      const hasLocalChanges = localChecksum !== quickChecksum(mergedData);
+      const hasDriveChanges = driveChecksum !== quickChecksum(mergedData);
+      
+      if (hasLocalChanges) {
+        console.log('📝 Updating local storage with merged data');
+        loadData(mergedData);
+      }
+      
+      if (hasDriveChanges) {
+        console.log('📤 Uploading merged data to Drive');
+        await uploadFile(file.id, mergedData);
+      }
+      
+      if (!hasLocalChanges && !hasDriveChanges) {
+        console.log('⏭️ No changes needed after merge');
       }
 
       setSyncStatus('success');
@@ -297,7 +360,7 @@ export const useGoogleDriveSync = () => {
     } finally {
       isSyncingRef.current = false;
     }
-  }, [isAuthenticated, getOrCreateFile, downloadFile, uploadFile, getAllData, loadData]);
+  }, [isAuthenticated, getOrCreateFile, downloadFile, uploadFile, getAllData, loadData, mergeData]);
 
   // Track local changes (no longer auto-syncs immediately)
   const trackLocalChange = useCallback(() => {

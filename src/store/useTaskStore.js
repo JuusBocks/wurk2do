@@ -30,13 +30,15 @@ export const useTaskStore = create((set, get) => ({
   
   // Add a new task
   addTask: (day, taskText) => {
+    const now = Date.now();
     const newTask = {
-      id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `task_${now}_${Math.random().toString(36).substr(2, 9)}`,
       text: taskText,
       completed: false,
       priority: 0, // 0 = none, 1 = low, 2 = medium, 3 = high
       estimatedHours: 0, // Estimated hours to complete
-      createdAt: Date.now(),
+      createdAt: now,
+      lastModified: now,
     };
     
     set(state => {
@@ -55,14 +57,15 @@ export const useTaskStore = create((set, get) => ({
   // Update a task
   updateTask: (day, taskId, updates) => {
     set(state => {
+      const now = Date.now();
       const newState = {
         tasks: {
           ...state.tasks,
           [day]: state.tasks[day].map(task =>
-            task.id === taskId ? { ...task, ...updates } : task
+            task.id === taskId ? { ...task, ...updates, lastModified: now } : task
           ),
         },
-        lastModified: Date.now(),
+        lastModified: now,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
       return newState;
@@ -92,19 +95,20 @@ export const useTaskStore = create((set, get) => ({
       
       if (!task) return state;
       
+      const now = Date.now();
       const newTasks = { ...state.tasks };
       
       // Remove from source
       newTasks[fromDay] = sourceDay.filter(t => t.id !== taskId);
       
-      // Add to destination
+      // Add to destination with updated lastModified
       const destTasks = [...newTasks[toDay]];
-      destTasks.splice(newIndex, 0, task);
+      destTasks.splice(newIndex, 0, { ...task, lastModified: now });
       newTasks[toDay] = destTasks;
       
       const newState = {
         tasks: newTasks,
-        lastModified: Date.now(),
+        lastModified: now,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
       return newState;
