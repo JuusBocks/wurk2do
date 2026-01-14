@@ -72,9 +72,11 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
   };
 
   const handleDurationChange = (newDuration) => {
-    setDuration(newDuration);
+    if (!newDuration || Number.isNaN(newDuration)) return;
+    const clamped = Math.min(Math.max(newDuration, 1), 240); // 1–240 mins
+    setDuration(clamped);
     if (!isRunning) {
-      setTimeLeft(newDuration * 60);
+      setTimeLeft(clamped * 60);
     }
   };
 
@@ -382,45 +384,54 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
         )}
 
         {/* Suggested Session (based on task durations) */}
-        {suggestedFocusMinutes !== null && suggestedBreakMinutes !== null && (
+        {totalTasks > 0 && (
           <div className="w-full max-w-md mb-8 bg-dark-surface rounded-xl border border-dark-border p-4">
             <h3 className="text-sm font-semibold text-gray-200 mb-2">
               Suggested session from task durations
             </h3>
-            <p className="text-xs text-gray-400 mb-3">
-              Based on your selected tasks' estimated hours:
-            </p>
-            <div className="flex items-center justify-between text-sm text-gray-200 mb-3">
-              <div>
-                <div className="font-mono text-base text-blue-400">
-                  {suggestedFocusMinutes} min
+            {suggestedFocusMinutes !== null && suggestedBreakMinutes !== null ? (
+              <>
+                <p className="text-xs text-gray-400 mb-3">
+                  Based on your selected tasks' estimated hours:
+                </p>
+                <div className="flex items-center justify-between text-sm text-gray-200 mb-3">
+                  <div>
+                    <div className="font-mono text-base text-blue-400">
+                      {suggestedFocusMinutes} min
+                    </div>
+                    <div className="text-xs text-gray-400">Focus time</div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-base text-emerald-400">
+                      {suggestedBreakMinutes} min
+                    </div>
+                    <div className="text-xs text-gray-400">Break suggestion</div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-base text-gray-300">
+                      {suggestedFocusMinutes + suggestedBreakMinutes} min
+                    </div>
+                    <div className="text-xs text-gray-400">Total block</div>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400">Focus time</div>
-              </div>
-              <div>
-                <div className="font-mono text-base text-emerald-400">
-                  {suggestedBreakMinutes} min
+                <div className="flex items-center justify-between gap-3">
+                  <button
+                    onClick={() => handleDurationChange(suggestedFocusMinutes)}
+                    className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 rounded-lg text-xs font-medium text-white transition-colors touch-manipulation"
+                  >
+                    Use {suggestedFocusMinutes} min focus
+                  </button>
+                  <span className="text-[11px] text-gray-500">
+                    You can still change it manually below.
+                  </span>
                 </div>
-                <div className="text-xs text-gray-400">Break suggestion</div>
-              </div>
-              <div>
-                <div className="font-mono text-base text-gray-300">
-                  {suggestedFocusMinutes + suggestedBreakMinutes} min
-                </div>
-                <div className="text-xs text-gray-400">Total block</div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => handleDurationChange(suggestedFocusMinutes)}
-                className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 rounded-lg text-xs font-medium text-white transition-colors touch-manipulation"
-              >
-                Use {suggestedFocusMinutes} min focus
-              </button>
-              <span className="text-[11px] text-gray-500">
-                You can still change it manually below.
-              </span>
-            </div>
+              </>
+            ) : (
+              <p className="text-xs text-gray-400">
+                These tasks don't have estimated hours yet. Set durations in Week or Calendar
+                view to get a recommended focus + break session, or choose a time manually below.
+              </p>
+            )}
           </div>
         )}
 
@@ -467,21 +478,36 @@ export const Timer = ({ selectedTasks = [], onTaskComplete, onClearTasks, compac
           </div>
         </div>
 
-        {/* Duration Presets */}
-        <div className="flex gap-2 mb-8">
-          {[5, 15, 25, 45, 60].map(mins => (
-            <button
-              key={mins}
-              onClick={() => handleDurationChange(mins)}
-              className={`px-4 py-2 rounded-lg transition-colors touch-manipulation ${
-                duration === mins
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-dark-surface text-gray-400 hover:bg-dark-hover'
-              }`}
-            >
-              {mins}m
-            </button>
-          ))}
+        {/* Duration Presets + Manual Entry */}
+        <div className="flex flex-col items-center gap-3 mb-8">
+          <div className="flex gap-2">
+            {[5, 15, 25, 45, 60].map(mins => (
+              <button
+                key={mins}
+                onClick={() => handleDurationChange(mins)}
+                className={`px-4 py-2 rounded-lg transition-colors touch-manipulation ${
+                  duration === mins
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-dark-surface text-gray-400 hover:bg-dark-hover'
+                }`}
+              >
+                {mins}m
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>Custom:</span>
+            <input
+              type="number"
+              min="1"
+              max="240"
+              step="1"
+              value={duration}
+              onChange={(e) => handleDurationChange(parseInt(e.target.value, 10))}
+              className="w-16 bg-dark-surface border border-dark-border rounded px-2 py-1 text-xs text-gray-200 focus:outline-none focus:border-blue-500 text-center"
+            />
+            <span>minutes</span>
+          </div>
         </div>
 
         {/* Controls */}
