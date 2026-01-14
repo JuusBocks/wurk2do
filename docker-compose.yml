@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  week2do:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: week2do
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "com.week2do.description=Privacy-focused weekly planner"
+      - "com.week2do.version=1.0.0"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
