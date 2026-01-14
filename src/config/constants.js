@@ -6,6 +6,7 @@ export const GOOGLE_CONFIG = {
   DISCOVERY_DOCS: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
   FILE_NAME: 'my_weektodo_data.json',
   MIME_TYPE: 'application/json',
+  FOLDER_NAME: 'wurk2do-tasks', // Folder in Drive where the JSON file will live
 };
 
 // LocalStorage key

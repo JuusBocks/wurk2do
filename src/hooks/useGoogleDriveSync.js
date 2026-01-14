@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CONFIG, SYNC_DELAY, AUTO_SYNC_INTERVAL } from '../config/constants';
 import { useTaskStore } from '../store/useTaskStore';
-import { encryptData, decryptData, isEncrypted, migrateToEncrypted } from '../utils/encryption';
-import { compressData, decompressData, isCompressionSupported } from '../utils/compression';
+import { decryptData, isEncrypted } from '../utils/encryption';
+import { decompressData, isCompressionSupported } from '../utils/compression';
 import { hashData, quickChecksum } from '../utils/dataHash';
 
 export const useGoogleDriveSync = () => {
@@ -15,6 +15,7 @@ export const useGoogleDriveSync = () => {
   const tokenClientRef = useRef(null);
   const accessTokenRef = useRef(null);
   const fileIdRef = useRef(null);
+  const folderIdRef = useRef(null);
   const syncTimeoutRef = useRef(null);
   const isSyncingRef = useRef(false);
   const autoSyncIntervalRef = useRef(null);
@@ -68,7 +69,45 @@ export const useGoogleDriveSync = () => {
     return () => clearInterval(checkInterval);
   }, []);
 
-  // Find or create the data file in Google Drive
+  // Find or create the wurk2do folder in Google Drive
+  const getOrCreateFolder = useCallback(async () => {
+    try {
+      if (folderIdRef.current) {
+        return folderIdRef.current;
+      }
+
+      // Look for existing folder
+      const res = await window.gapi.client.drive.files.list({
+        q: `mimeType='application/vnd.google-apps.folder' and name='${GOOGLE_CONFIG.FOLDER_NAME}' and trashed=false`,
+        fields: 'files(id, name)',
+        spaces: 'drive',
+      });
+
+      if (res.result.files && res.result.files.length > 0) {
+        folderIdRef.current = res.result.files[0].id;
+        console.log('📁 Using existing wurk2do folder');
+        return folderIdRef.current;
+      }
+
+      // Create new folder
+      const createRes = await window.gapi.client.drive.files.create({
+        resource: {
+          name: GOOGLE_CONFIG.FOLDER_NAME,
+          mimeType: 'application/vnd.google-apps.folder',
+        },
+        fields: 'id, name',
+      });
+
+      folderIdRef.current = createRes.result.id;
+      console.log('📁 Created wurk2do folder');
+      return folderIdRef.current;
+    } catch (err) {
+      console.error('Error getting/creating wurk2do folder:', err);
+      throw err;
+    }
+  }, []);
+
+  // Find or create the data file in Google Drive (inside our folder)
   const getOrCreateFile = useCallback(async () => {
     try {
       // Check cache first to reduce API calls
@@ -77,46 +116,72 @@ export const useGoogleDriveSync = () => {
         return fileMetadataRef.current;
       }
 
-      // Search for existing file
-      const searchResponse = await window.gapi.client.drive.files.list({
-        q: `name='${GOOGLE_CONFIG.FILE_NAME}' and trashed=false`,
-        fields: 'files(id, name, modifiedTime)',
+      const folderId = await getOrCreateFolder();
+
+      // First, try to find the file inside our folder
+      const searchInFolder = await window.gapi.client.drive.files.list({
+        q: `'${folderId}' in parents and name='${GOOGLE_CONFIG.FILE_NAME}' and trashed=false`,
+        fields: 'files(id, name, modifiedTime, parents)',
         spaces: 'drive',
       });
 
-      const files = searchResponse.result.files;
-      
-      if (files && files.length > 0) {
-        // File exists - cache it
-        fileIdRef.current = files[0].id;
-        fileMetadataRef.current = files[0];
-        console.log('📋 File found and cached');
-        return files[0];
-      } else {
-        // Create new file
-        const createResponse = await window.gapi.client.drive.files.create({
-          resource: {
-            name: GOOGLE_CONFIG.FILE_NAME,
-            mimeType: GOOGLE_CONFIG.MIME_TYPE,
-          },
-          fields: 'id, name, modifiedTime',
-        });
-        
-        fileIdRef.current = createResponse.result.id;
-        fileMetadataRef.current = createResponse.result;
-        
-        // Write initial empty data
-        const initialData = getAllData();
-        await uploadFile(createResponse.result.id, initialData);
-        
-        console.log('📋 File created and cached');
-        return createResponse.result;
+      if (searchInFolder.result.files && searchInFolder.result.files.length > 0) {
+        const file = searchInFolder.result.files[0];
+        fileIdRef.current = file.id;
+        fileMetadataRef.current = file;
+        console.log('📋 File found in wurk2do folder and cached');
+        return file;
       }
+
+      // Fallback: look for legacy file anywhere (root) by name
+      const legacySearch = await window.gapi.client.drive.files.list({
+        q: `name='${GOOGLE_CONFIG.FILE_NAME}' and trashed=false`,
+        fields: 'files(id, name, modifiedTime, parents)',
+        spaces: 'drive',
+      });
+
+      if (legacySearch.result.files && legacySearch.result.files.length > 0) {
+        const legacyFile = legacySearch.result.files[0];
+        console.log('📋 Found legacy data file, moving it into wurk2do folder');
+
+        // Move legacy file into our folder (add new parent, remove old parents)
+        await window.gapi.client.drive.files.update({
+          fileId: legacyFile.id,
+          addParents: folderId,
+          removeParents: (legacyFile.parents || []).join(','),
+          fields: 'id, name, modifiedTime, parents',
+        });
+
+        legacyFile.parents = [folderId];
+        fileIdRef.current = legacyFile.id;
+        fileMetadataRef.current = legacyFile;
+        return legacyFile;
+      }
+
+      // Create new file in our folder
+      const createResponse = await window.gapi.client.drive.files.create({
+        resource: {
+          name: GOOGLE_CONFIG.FILE_NAME,
+          mimeType: GOOGLE_CONFIG.MIME_TYPE,
+          parents: [folderId],
+        },
+        fields: 'id, name, modifiedTime, parents',
+      });
+      
+      fileIdRef.current = createResponse.result.id;
+      fileMetadataRef.current = createResponse.result;
+      
+      // Write initial empty data
+      const initialData = getAllData();
+      await uploadFile(createResponse.result.id, initialData);
+      
+      console.log('📋 File created in wurk2do folder and cached');
+      return createResponse.result;
     } catch (err) {
       console.error('Error getting/creating file:', err);
       throw err;
     }
-  }, [getAllData]);
+  }, [getAllData, getOrCreateFolder]);
 
   // Download file content from Google Drive
   const downloadFile = useCallback(async (fileId) => {
@@ -128,7 +193,7 @@ export const useGoogleDriveSync = () => {
       
       let content = response.result;
       
-      // If content is encrypted (older versions), try to decrypt; otherwise parse as (possibly compressed) JSON
+      // If content is encrypted (older versions), try to decrypt & decompress; otherwise parse as JSON
       if (typeof content === 'string') {
         try {
           if (userEmailRef.current && isEncrypted(content)) {
@@ -149,18 +214,8 @@ export const useGoogleDriveSync = () => {
               content = JSON.parse(decryptedContent);
             }
           } else {
-            // New behavior: plain JSON string, possibly compressed but not encrypted.
-            let jsonString = content;
-            if (isCompressionSupported()) {
-              try {
-                const decompressed = await decompressData(content);
-                jsonString = decompressed;
-                console.log('📦 Decompressed plain JSON data from Drive');
-              } catch (err) {
-                console.warn('⚠️ Decompression failed for plain JSON path, using raw content:', err);
-              }
-            }
-            content = JSON.parse(jsonString);
+            // New behavior: plain JSON string, not compressed or encrypted.
+            content = JSON.parse(content);
           }
         } catch (err) {
           console.warn('⚠️ Failed to parse Drive content, treating as empty:', err);
@@ -179,7 +234,7 @@ export const useGoogleDriveSync = () => {
     }
   }, []);
 
-  // Upload file content to Google Drive
+  // Upload file content to Google Drive (plain JSON, no encryption)
   const uploadFile = useCallback(async (fileId, data) => {
     try {
       // Check if data actually changed using hash comparison
@@ -200,18 +255,8 @@ export const useGoogleDriveSync = () => {
         modifiedTime: new Date().toISOString(),
       };
 
-      // NEW: Store plain JSON (optionally compressed) in Drive for maximum compatibility.
-      // Older encrypted files are still read by downloadFile, but new writes are not encrypted.
-      let contentToUpload = dataString;
-      
-      // Optionally compress plain JSON (keeps it readable if downloaded, just smaller)
-      if (isCompressionSupported()) {
-        const originalSize = new Blob([contentToUpload]).size;
-        contentToUpload = await compressData(contentToUpload);
-        const compressedSize = new Blob([contentToUpload]).size;
-        const savings = ((1 - compressedSize / originalSize) * 100).toFixed(1);
-        console.log(`📦 Compressed data: ${originalSize}B → ${compressedSize}B (${savings}% smaller)`);
-      }
+      // Store plain JSON string in Drive (no encryption, no compression) for easy access
+      const contentToUpload = dataString;
 
       const multipartRequestBody =
         delimiter +
