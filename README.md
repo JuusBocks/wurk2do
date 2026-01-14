@@ -16,11 +16,12 @@ A self-hosted, privacy-focused weekly planner web application that uses Google D
 - **🎯 Drag & Drop**: Move tasks between days effortlessly
 - **⏰ Estimated Hours**: Assign and track estimated time for each task
 - **📊 Task Summary**: Comprehensive list view of all tasks with priority and completion status
+- **🔒 End-to-End Encryption**: AES-256-GCM encryption - your data is encrypted before upload to Google Drive
 - **☁️ Google Drive Sync**: Automatic cloud synchronization (every 8 hours) with your Google Drive
 - **💾 Local-First**: Instant loading from LocalStorage, works offline
 - **📱 PWA Support**: Install on iPhone home screen, works like a native app
 - **🌙 Dark Mode**: Beautiful, minimalist dark theme optimized for mobile
-- **🔒 Privacy-Focused**: Your data stays in YOUR Google Drive
+- **🔐 Privacy-Focused**: Your data stays in YOUR Google Drive, encrypted with your unique key
 - **🐳 Self-Hostable**: Easy deployment with Docker
 
 ## 🏗️ Architecture

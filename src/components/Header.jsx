@@ -33,7 +33,17 @@ export const Header = ({
         {/* Logo and Title */}
         <div className="min-w-0">
           <h1 className="text-lg sm:text-2xl font-bold text-gray-100 truncate">wurk2do</h1>
-          <p className="hidden sm:block text-sm text-gray-400">Privacy-focused weekly planner</p>
+          <div className="hidden sm:flex items-center gap-2">
+            <p className="text-sm text-gray-400">Privacy-focused weekly planner</p>
+            {isAuthenticated && (
+              <span className="text-xs text-green-400 flex items-center gap-1" title="End-to-end encrypted">
+                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                Encrypted
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Google Drive Status and Controls */}

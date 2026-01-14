@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GOOGLE_CONFIG, SYNC_DELAY, AUTO_SYNC_INTERVAL } from '../config/constants';
 import { useTaskStore } from '../store/useTaskStore';
+import { encryptData, decryptData, isEncrypted, migrateToEncrypted } from '../utils/encryption';
 
 export const useGoogleDriveSync = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,6 +17,7 @@ export const useGoogleDriveSync = () => {
   const isSyncingRef = useRef(false);
   const autoSyncIntervalRef = useRef(null);
   const lastLocalChangeRef = useRef(Date.now());
+  const userEmailRef = useRef(null);
   
   const loadData = useTaskStore(state => state.loadData);
   const getAllData = useTaskStore(state => state.getAllData);
@@ -109,7 +111,16 @@ export const useGoogleDriveSync = () => {
         alt: 'media',
       });
       
-      return response.result;
+      let content = response.result;
+      
+      // If content is encrypted, decrypt it
+      if (userEmailRef.current && typeof content === 'string' && isEncrypted(content)) {
+        console.log('🔓 Decrypting data from Drive...');
+        const decryptedContent = await decryptData(content, userEmailRef.current);
+        content = JSON.parse(decryptedContent);
+      }
+      
+      return content;
     } catch (err) {
       console.error('Error downloading file:', err);
       throw err;
@@ -128,13 +139,20 @@ export const useGoogleDriveSync = () => {
         modifiedTime: new Date().toISOString(),
       };
 
+      // Encrypt data before uploading if user email is available
+      let contentToUpload = JSON.stringify(data);
+      if (userEmailRef.current) {
+        console.log('🔒 Encrypting data before upload...');
+        contentToUpload = await encryptData(contentToUpload, userEmailRef.current);
+      }
+
       const multipartRequestBody =
         delimiter +
         'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
         JSON.stringify(metadata) +
         delimiter +
         'Content-Type: ' + GOOGLE_CONFIG.MIME_TYPE + '\r\n\r\n' +
-        JSON.stringify(data) +
+        contentToUpload +
         close_delim;
 
       const response = await fetch(
@@ -230,6 +248,18 @@ export const useGoogleDriveSync = () => {
 
       accessTokenRef.current = response.access_token;
       window.gapi.client.setToken({ access_token: response.access_token });
+      
+      // Get user info for encryption key derivation
+      try {
+        const userInfo = await window.gapi.client.request({
+          path: 'https://www.googleapis.com/oauth2/v2/userinfo',
+        });
+        userEmailRef.current = userInfo.result.email;
+        console.log('🔑 Encryption key derived from user account');
+      } catch (err) {
+        console.warn('Could not get user email, encryption may not work:', err);
+      }
+      
       setIsAuthenticated(true);
       
       // Initial sync after authentication
@@ -246,7 +276,17 @@ export const useGoogleDriveSync = () => {
     };
 
     if (accessTokenRef.current) {
-      // Already have token, just sync
+      // Already have token, get user info and sync
+      try {
+        const userInfo = await window.gapi.client.request({
+          path: 'https://www.googleapis.com/oauth2/v2/userinfo',
+        });
+        userEmailRef.current = userInfo.result.email;
+        console.log('🔑 Encryption key derived from user account');
+      } catch (err) {
+        console.warn('Could not get user email, encryption may not work:', err);
+      }
+      
       setIsAuthenticated(true);
       syncData();
       
@@ -282,6 +322,7 @@ export const useGoogleDriveSync = () => {
     window.gapi.client.setToken(null);
     setIsAuthenticated(false);
     fileIdRef.current = null;
+    userEmailRef.current = null;
     setSyncStatus('idle');
     setLastSyncTime(null);
   }, []);
