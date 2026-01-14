@@ -29,7 +29,7 @@ export const TaskSummary = ({ tasks }) => {
   const stats = getTotalStats();
 
   return (
-    <div className="mt-6 px-3 sm:px-6 mb-20 sm:mb-8">
+    <div className="mt-6 px-3 sm:px-6 mb-6 sm:mb-8">
       <div className="bg-dark-surface rounded-lg border border-dark-border p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

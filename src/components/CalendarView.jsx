@@ -221,7 +221,7 @@ export const CalendarView = ({ tasks, onAddTask, onUpdateTask, onDeleteTask, onT
             </div>
 
             {/* Time Grid with Positioned Tasks */}
-            <div className="max-h-[600px] overflow-y-auto relative">
+            <div className="max-h-[500px] sm:max-h-[600px] overflow-y-auto relative">
               <div className="grid grid-cols-8">
                 {/* Time Labels Column */}
                 <div className="sticky left-0 z-10 bg-dark-bg border-r border-dark-border">

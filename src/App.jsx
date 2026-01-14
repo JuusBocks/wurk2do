@@ -64,7 +64,7 @@ function App() {
         onTaskSelect={setSelectedTaskForTimer}
       />
 
-      <main className="py-4 sm:py-6">
+      <main className="py-4 sm:py-6 pb-32 sm:pb-16">
         <div className="mb-3 sm:mb-4 px-3 sm:px-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-200">
@@ -135,12 +135,15 @@ function App() {
               onTaskSelectForTimer={setSelectedTaskForTimer}
             />
             <TaskSummary tasks={tasks} />
+            
+            {/* Bottom Spacer - Ensures content is accessible on iOS */}
+            <div className="h-8 sm:hidden" aria-hidden="true"></div>
           </>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="hidden sm:block fixed bottom-0 left-0 right-0 bg-dark-surface border-t border-dark-border px-6 py-2 text-xs text-gray-500 text-center">
+      <footer className="hidden sm:block fixed bottom-0 left-0 right-0 bg-dark-surface border-t border-dark-border px-6 py-2 text-xs text-gray-500 text-center" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
         <p>
           wurk2do - Privacy-focused weekly planner. Your data stays in your Google Drive.
           {' '}

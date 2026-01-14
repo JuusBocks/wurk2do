@@ -14,6 +14,11 @@
     overscroll-behavior: none;
   }
   
+  /* Support for iOS safe areas (notch and home indicator) */
+  html {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
   /* Improve tap targets on mobile */
   @media (pointer: coarse) {
     button, a, [role="button"] {
