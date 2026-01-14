@@ -108,7 +108,7 @@ function App() {
         onClearTasks={handleClearTimerTasks}
       />
 
-      <main className="py-4 sm:py-6 pb-24 sm:pb-28">
+      <main className="py-4 sm:py-6" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="mb-3 sm:mb-4 px-3 sm:px-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg sm:text-xl font-semibold text-gray-200">

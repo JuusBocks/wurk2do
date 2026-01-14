@@ -10,6 +10,8 @@ export const BottomNav = ({ currentView, onViewChange }) => {
       className="fixed bottom-0 left-0 right-0 bg-dark-surface/80 backdrop-blur-2xl border-t border-white/10 z-50"
       style={{ 
         paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+        paddingTop: '0.5rem',
+        minHeight: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))',
         boxShadow: '0 -10px 30px rgba(0, 0, 0, 0.3)',
       }}
     >
