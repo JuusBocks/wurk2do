@@ -2,16 +2,7 @@ import { create } from 'zustand';
 import { STORAGE_KEY, DAYS_OF_WEEK } from '../config/constants';
 
 const getInitialData = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Error loading from localStorage:', error);
-  }
-  
-  // Return default structure
+  // Always start with empty tasks - tasks only come from Google Drive sync
   const defaultData = {
     tasks: {},
     lastModified: Date.now(),
@@ -41,24 +32,20 @@ export const useTaskStore = create((set, get) => ({
       lastModified: now,
     };
     
-    set(state => {
-      const newState = {
-        tasks: {
-          ...state.tasks,
-          [day]: [...state.tasks[day], newTask],
-        },
-        lastModified: Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-      return newState;
-    });
+    set(state => ({
+      tasks: {
+        ...state.tasks,
+        [day]: [...state.tasks[day], newTask],
+      },
+      lastModified: Date.now(),
+    }));
   },
   
   // Update a task
   updateTask: (day, taskId, updates) => {
     set(state => {
       const now = Date.now();
-      const newState = {
+      return {
         tasks: {
           ...state.tasks,
           [day]: state.tasks[day].map(task =>
@@ -67,24 +54,18 @@ export const useTaskStore = create((set, get) => ({
         },
         lastModified: now,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-      return newState;
     });
   },
   
   // Delete a task
   deleteTask: (day, taskId) => {
-    set(state => {
-      const newState = {
-        tasks: {
-          ...state.tasks,
-          [day]: state.tasks[day].filter(task => task.id !== taskId),
-        },
-        lastModified: Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-      return newState;
-    });
+    set(state => ({
+      tasks: {
+        ...state.tasks,
+        [day]: state.tasks[day].filter(task => task.id !== taskId),
+      },
+      lastModified: Date.now(),
+    }));
   },
   
   // Move task between days (for drag and drop)
@@ -106,12 +87,10 @@ export const useTaskStore = create((set, get) => ({
       destTasks.splice(newIndex, 0, { ...task, lastModified: now });
       newTasks[toDay] = destTasks;
       
-      const newState = {
+      return {
         tasks: newTasks,
         lastModified: now,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-      return newState;
     });
   },
   
@@ -122,28 +101,22 @@ export const useTaskStore = create((set, get) => ({
       const [removed] = dayTasks.splice(startIndex, 1);
       dayTasks.splice(endIndex, 0, removed);
       
-      const newState = {
+      return {
         tasks: {
           ...state.tasks,
           [day]: dayTasks,
         },
         lastModified: Date.now(),
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-      return newState;
     });
   },
   
   // Load data from external source (Google Drive)
   loadData: (data) => {
-    set(() => {
-      const newState = {
-        tasks: data.tasks,
-        lastModified: data.lastModified || Date.now(),
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState));
-      return newState;
-    });
+    set(() => ({
+      tasks: data.tasks,
+      lastModified: data.lastModified || Date.now(),
+    }));
   },
   
   // Get all data for sync

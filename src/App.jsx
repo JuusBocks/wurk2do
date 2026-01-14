@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { STORAGE_KEY } from './config/constants';
 import { Header } from './components/Header';
 import { WeekView } from './components/WeekView';
 import { TaskSummary } from './components/TaskSummary';
@@ -27,6 +28,11 @@ function App() {
     manualSync,
     trackLocalChange,
   } = useGoogleDriveSync();
+
+  // Clear localStorage on app start - tasks only come from Google Drive
+  useEffect(() => {
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
 
   useEffect(() => {
     // Trigger initial sync when authenticated
