@@ -27,6 +27,7 @@ export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteT
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
+  const priorityCount = tasks.filter(t => t.priority && !t.completed).length;
 
   return (
     <div className={`
@@ -49,11 +50,21 @@ export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteT
           <p className="text-xs sm:text-sm text-gray-400">
             {format(date, 'MMM d')}
           </p>
-          {totalCount > 0 && (
-            <p className="text-xs text-gray-500">
-              {completedCount}/{totalCount}
-            </p>
-          )}
+          <div className="flex items-center gap-2">
+            {priorityCount > 0 && (
+              <span className="flex items-center gap-0.5 text-xs text-orange-400">
+                <svg className="w-3 h-3 fill-orange-500" viewBox="0 0 24 24">
+                  <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+                {priorityCount}
+              </span>
+            )}
+            {totalCount > 0 && (
+              <p className="text-xs text-gray-500">
+                {completedCount}/{totalCount}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -68,16 +79,23 @@ export const DayColumn = ({ day, tasks, date, onAddTask, onUpdateTask, onDeleteT
                 ${snapshot.isDraggingOver ? 'bg-dark-hover' : ''}
               `}
             >
-            {tasks.map((task, index) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                index={index}
-                day={day}
-                onUpdate={onUpdateTask}
-                onDelete={onDeleteTask}
-              />
-            ))}
+            {tasks
+              .sort((a, b) => {
+                // Priority tasks first, then by creation date
+                if (a.priority && !b.priority) return -1;
+                if (!a.priority && b.priority) return 1;
+                return 0;
+              })
+              .map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  index={index}
+                  day={day}
+                  onUpdate={onUpdateTask}
+                  onDelete={onDeleteTask}
+                />
+              ))}
             {provided.placeholder}
 
             {/* Add Task Button/Form */}

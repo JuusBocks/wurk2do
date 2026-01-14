@@ -34,6 +34,7 @@ export const useTaskStore = create((set, get) => ({
       id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       text: taskText,
       completed: false,
+      priority: false,
       createdAt: Date.now(),
     };
     
